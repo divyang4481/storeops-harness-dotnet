@@ -32,7 +32,7 @@ StoreOps.sln
 │  │  ├─ Events/                 IEventBus, IEventSubscriber<T>, InMemoryEventBus
 │  │  └─ Http/                   request helpers, status-code error bodies
 │  ├─ Contracts/                 the ONLY cross-module surface
-│  │  ├─ Activities/             ActivityStatus + Activity* events, ShiftHandoverCompletedEvent + HandedOverActivity
+│  │  ├─ Activities/             ActivityStatus + Activity* events (incl. ActivitySlaBreachedEvent), ShiftHandoverCompletedEvent + HandedOverActivity
 │  │  ├─ Programmes/             ProgrammeMemberAddedEvent
 │  │  └─ Staff/                  IStaffDirectory (read-only) + StaffMember
 │  └─ Modules/
@@ -84,6 +84,18 @@ Activities, Programmes ──read-only──▶ IStaffDirectory (Staff)
 ```
 
 A bulk status update that updates at least one activity publishes one `ShiftHandoverCompletedEvent`; Alerts raises a `ShiftHandover` alert (`Shift handover by <staff>: <n> done, <n> blocked, <n> rejected. Done: '<title>'. Blocked: '<title>'.` plus ` Note: <note>` when given) for `incomingStaffId`, or else for every active store manager of the store except the outgoing staff member.
+
+### SLA breach alerting
+
+The Activities module runs an SLA sweep (`ActivitySlaMonitor.RunSweepAsync`). A `High` or `Critical` activity whose `dueAt` has passed (strictly later than `dueAt`) and whose status is not `Done` (so `Blocked` counts) breaches once. The sweep stores a breach marker and then publishes `ActivitySlaBreachedEvent`. Repeated sweeps never raise the same breach again. Alerts raises one `SlaBreach` alert (`SLA breach: ...`) for each active department lead of the activity's store and department. If there is no such lead, or the activity has no department, every active store manager of that store gets the alert instead. Activities without `dueAt`, and `Low` or `Medium` activities, never breach.
+
+The `ActivitySlaSweepService` hosted service runs the sweep on a timer. You configure it in `appsettings.json`:
+
+```json
+"Sla": { "BackgroundSweepEnabled": true, "SweepIntervalSeconds": 60 }
+```
+
+`SweepIntervalSeconds` must be between 5 and 3600; any other value stops startup with an `OptionsValidationException`. When `BackgroundSweepEnabled` is `false`, the hosted service is not registered. No endpoint was added for this feature.
 
 `InMemoryEventBus` runs in process and isolates subscriber failures. To move to a real broker (Azure Service Bus, GCP Pub/Sub, AWS SNS+SQS), replace that one class behind `IEventBus`.
 

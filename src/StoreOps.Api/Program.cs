@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddStoreOpsPlatform()
     .AddStaffModule()
-    .AddActivitiesModule()
+    .AddActivitiesModule(builder.Configuration)
     .AddProgrammesModule()
     .AddAlertsModule()
     .AddReportsModule();
