@@ -32,7 +32,7 @@ StoreOps.sln
 │  │  ├─ Events/                 IEventBus, IEventSubscriber<T>, InMemoryEventBus
 │  │  └─ Http/                   request helpers, status-code error bodies
 │  ├─ Contracts/                 the ONLY cross-module surface
-│  │  ├─ Activities/             ActivityStatus + Activity* events (incl. ActivitySlaBreachedEvent), ShiftHandoverCompletedEvent + HandedOverActivity
+│  │  ├─ Activities/             ActivityStatus + Activity* events (incl. ActivitySlaBreachedEvent, ActivitySlaEscalatedEvent), ShiftHandoverCompletedEvent + HandedOverActivity
 │  │  ├─ Programmes/             ProgrammeMemberAddedEvent
 │  │  └─ Staff/                  IStaffDirectory (read-only) + StaffMember
 │  └─ Modules/
@@ -92,10 +92,15 @@ The Activities module runs an SLA sweep (`ActivitySlaMonitor.RunSweepAsync`). A 
 The `ActivitySlaSweepService` hosted service runs the sweep on a timer. You configure it in `appsettings.json`:
 
 ```json
-"Sla": { "BackgroundSweepEnabled": true, "SweepIntervalSeconds": 60 }
+"Sla": { "BackgroundSweepEnabled": true, "SweepIntervalSeconds": 60, "EscalationGracePeriodMinutes": 60 }
 ```
 
-`SweepIntervalSeconds` must be between 5 and 3600; any other value stops startup with an `OptionsValidationException`. When `BackgroundSweepEnabled` is `false`, the hosted service is not registered. No endpoint was added for this feature.
+`SweepIntervalSeconds` must be between 5 and 3600; any other value stops startup with an `OptionsValidationException`.
+`EscalationGracePeriodMinutes` (default 60) must be between 0 and 10080; any other value also stops startup with an `OptionsValidationException`.
+
+### SLA escalation
+
+After the breach pass, the same sweep escalates each breach that is still unresolved at `dueAt + EscalationGracePeriodMinutes`. Unresolved means the activity still exists, is not `Done`, and is still `High` or `Critical`. The sweep marks the breach as escalated first and then publishes `ActivitySlaEscalatedEvent`, so an activity is escalated at most once. A sweep that runs late can raise the breach and the escalation together, always breach first. Alerts raises one `Escalation` alert (`SLA escalation: ...`) for each active store manager of the activity's store. This alert is separate from the existing `Escalation` alert raised when an activity is set to `Blocked`. When `BackgroundSweepEnabled` is `false`, the hosted service is not registered. No endpoint was added for this feature.
 
 `InMemoryEventBus` runs in process and isolates subscriber failures. To move to a real broker (Azure Service Bus, GCP Pub/Sub, AWS SNS+SQS), replace that one class behind `IEventBus`.
 

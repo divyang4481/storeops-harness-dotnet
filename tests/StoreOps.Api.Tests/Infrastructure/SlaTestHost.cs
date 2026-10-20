@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,16 +11,21 @@ namespace StoreOps.Api.Tests.Infrastructure;
 
 /// <summary>
 /// A fresh API host for SLA tests: background sweep disabled, a <see cref="ManualTimeProvider"/> starting at
-/// <see cref="T0"/>, and a recorder for <see cref="ActivitySlaBreachedEvent"/>. Sweeps are run explicitly.
+/// <see cref="T0"/>, and recorders for <see cref="ActivitySlaBreachedEvent"/> and <see cref="ActivitySlaEscalatedEvent"/>
+/// (plus an ordered log of both). Extra configuration (e.g. <c>Sla:EscalationGracePeriodMinutes</c>) is passed as
+/// settings. Sweeps are run explicitly.
 /// </summary>
 public sealed class SlaTestHost : IDisposable
 {
     public static readonly DateTimeOffset T0 = new(2026, 1, 5, 9, 0, 0, TimeSpan.Zero);
 
     private readonly StoreOpsApiFactory _baseFactory;
+    private readonly ConcurrentQueue<IIntegrationEvent> _publishedEvents = new();
 
     public SlaTestHost(IReadOnlyDictionary<string, string>? settings = null)
     {
+        BreachEvents = new RecordingSubscriber<ActivitySlaBreachedEvent>(_publishedEvents);
+        EscalationEvents = new RecordingSubscriber<ActivitySlaEscalatedEvent>(_publishedEvents);
         _baseFactory = new StoreOpsApiFactory();
         Factory = _baseFactory.WithWebHostBuilder(builder =>
         {
@@ -33,6 +39,7 @@ public sealed class SlaTestHost : IDisposable
             {
                 services.AddSingleton<TimeProvider>(Clock);
                 services.AddSingleton<IEventSubscriber<ActivitySlaBreachedEvent>>(BreachEvents);
+                services.AddSingleton<IEventSubscriber<ActivitySlaEscalatedEvent>>(EscalationEvents);
             });
         });
     }
@@ -41,7 +48,12 @@ public sealed class SlaTestHost : IDisposable
 
     public ManualTimeProvider Clock { get; } = new(T0);
 
-    public RecordingSubscriber<ActivitySlaBreachedEvent> BreachEvents { get; } = new();
+    public RecordingSubscriber<ActivitySlaBreachedEvent> BreachEvents { get; }
+
+    public RecordingSubscriber<ActivitySlaEscalatedEvent> EscalationEvents { get; }
+
+    /// <summary>Gets every recorded SLA event (breach and escalation) in publication order.</summary>
+    public IReadOnlyList<IIntegrationEvent> PublishedEvents => _publishedEvents.ToArray();
 
     public HttpClient CreateClientAs(string staffId)
     {

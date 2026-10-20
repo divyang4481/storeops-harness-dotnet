@@ -14,6 +14,7 @@ public static class AlertsModule
         services.AddSingleton<IEventSubscriber<ActivityStatusChangedEvent>, ActivityAlertsSubscriber>();
         services.AddSingleton<IEventSubscriber<ShiftHandoverCompletedEvent>, ShiftHandoverAlertsSubscriber>();
         services.AddSingleton<IEventSubscriber<ActivitySlaBreachedEvent>, SlaBreachAlertsSubscriber>();
+        services.AddSingleton<IEventSubscriber<ActivitySlaEscalatedEvent>, SlaEscalationAlertsSubscriber>();
         return services;
     }
 }

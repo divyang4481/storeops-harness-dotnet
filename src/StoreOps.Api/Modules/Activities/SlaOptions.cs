@@ -14,4 +14,8 @@ public sealed class SlaOptions
     /// <summary>Gets or sets the number of seconds between two background sweeps.</summary>
     [Range(5, 3600)]
     public int SweepIntervalSeconds { get; set; } = 60;
+
+    /// <summary>Gets or sets the number of minutes after an activity's due time before an unresolved breach is escalated.</summary>
+    [Range(0, 10080)]
+    public int EscalationGracePeriodMinutes { get; set; } = 60;
 }
