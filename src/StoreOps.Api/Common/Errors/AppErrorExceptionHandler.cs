@@ -18,6 +18,30 @@ public sealed partial class AppErrorExceptionHandler : IExceptionHandler
         _logger = logger;
     }
 
+    /// <summary>
+    /// Converts a framework binding failure into a typed error without leaking internal type names
+    /// (for example <c>Nullable&lt;ActivityStatus&gt;</c>) to clients. The full message is still logged.
+    /// </summary>
+    /// <param name="exception">The binding failure raised by minimal APIs.</param>
+    /// <returns>A client-safe typed error.</returns>
+    public static AppError FromBindingFailure(BadHttpRequestException exception)
+    {
+        if (exception.StatusCode == StatusCodes.Status415UnsupportedMediaType)
+        {
+            return new UnsupportedMediaTypeError();
+        }
+
+        if (exception.InnerException is JsonException)
+        {
+            return new BadRequestError("Request body is not valid JSON or contains invalid values.");
+        }
+
+        var parameter = ParameterName().Match(exception.Message);
+        return parameter.Success
+            ? new BadRequestError($"Invalid value for parameter '{parameter.Groups["name"].Value}'.")
+            : new BadRequestError("The request is invalid.");
+    }
+
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
@@ -46,30 +70,6 @@ public sealed partial class AppErrorExceptionHandler : IExceptionHandler
         httpContext.Response.StatusCode = error.StatusCode;
         await httpContext.Response.WriteAsJsonAsync(ErrorResponse.From(error), cancellationToken).ConfigureAwait(false);
         return true;
-    }
-
-    /// <summary>
-    /// Converts a framework binding failure into a typed error without leaking internal type names
-    /// (for example <c>Nullable&lt;ActivityStatus&gt;</c>) to clients. The full message is still logged.
-    /// </summary>
-    /// <param name="exception">The binding failure raised by minimal APIs.</param>
-    /// <returns>A client-safe typed error.</returns>
-    public static AppError FromBindingFailure(BadHttpRequestException exception)
-    {
-        if (exception.StatusCode == StatusCodes.Status415UnsupportedMediaType)
-        {
-            return new UnsupportedMediaTypeError();
-        }
-
-        if (exception.InnerException is JsonException)
-        {
-            return new BadRequestError("Request body is not valid JSON or contains invalid values.");
-        }
-
-        var parameter = ParameterName().Match(exception.Message);
-        return parameter.Success
-            ? new BadRequestError($"Invalid value for parameter '{parameter.Groups["name"].Value}'.")
-            : new BadRequestError("The request is invalid.");
     }
 
     [GeneratedRegex(@"parameter ""(?:[^""]*\s)?(?<name>\w+)""")]
