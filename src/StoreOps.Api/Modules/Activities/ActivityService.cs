@@ -26,8 +26,11 @@ public sealed class ActivityService
         _clock = clock;
     }
 
-    public Task<IReadOnlyList<Activity>> ListAsync(string? storeId, ActivityStatus? status, CancellationToken cancellationToken) =>
-        _repository.ListAsync(storeId, status, cancellationToken);
+    public Task<IReadOnlyList<Activity>> ListAsync(string? storeId, ActivityStatus? status, CancellationToken cancellationToken)
+    {
+        EnsureDefined(status);
+        return _repository.ListAsync(storeId, status, cancellationToken);
+    }
 
     public async Task<Activity> GetAsync(Guid id, CancellationToken cancellationToken) =>
         await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false)
@@ -77,6 +80,7 @@ public sealed class ActivityService
 
         var existing = await GetAsync(id, cancellationToken).ConfigureAwait(false);
 
+        EnsureDefined(request.Status);
         var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
         ValidateTitle(request.Title, required: false, errors);
         if (errors.Count > 0)
@@ -84,9 +88,10 @@ public sealed class ActivityService
             throw new ValidationError("Activity update is invalid.", errors);
         }
 
-        if (request.Status is { } newStatus && newStatus != existing.Status && IsTerminal(existing.Status))
+        // Completed and cancelled activities are closed records: no field may change any more.
+        if (IsTerminal(existing.Status))
         {
-            throw new ConflictError($"Activity is already {existing.Status} and cannot move to {newStatus}.");
+            throw new ConflictError($"Activity is already {existing.Status} and can no longer be modified.");
         }
 
         await EnsureAssigneeExistsAsync(request.AssigneeStaffId, cancellationToken).ConfigureAwait(false);
@@ -125,6 +130,14 @@ public sealed class ActivityService
         await _eventBus.PublishAsync(
             new ActivityDeletedEvent(existing.Id, existing.StoreId, existing.Status, _clock.GetUtcNow()),
             cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void EnsureDefined(ActivityStatus? status)
+    {
+        if (status is { } value && !Enum.IsDefined(value))
+        {
+            throw ValidationError.ForField("status", $"'{(int)value}' is not a valid activity status.");
+        }
     }
 
     private static bool IsTerminal(ActivityStatus status) =>

@@ -10,6 +10,8 @@ public static class ErrorCodes
 
     public const string MethodNotAllowed = "METHOD_NOT_ALLOWED";
 
+    public const string UnsupportedMediaType = "UNSUPPORTED_MEDIA_TYPE";
+
     public const string Conflict = "CONFLICT";
 
     public const string Internal = "INTERNAL_ERROR";

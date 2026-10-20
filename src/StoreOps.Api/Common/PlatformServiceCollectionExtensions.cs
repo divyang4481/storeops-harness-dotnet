@@ -20,7 +20,7 @@ public static class PlatformServiceCollectionExtensions
         // flow through AppErrorExceptionHandler and share the typed error shape.
         services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
         services.ConfigureHttpJsonOptions(options =>
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false)));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         return services;

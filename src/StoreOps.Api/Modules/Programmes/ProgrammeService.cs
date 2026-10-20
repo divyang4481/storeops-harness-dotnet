@@ -61,6 +61,10 @@ public sealed class ProgrammeService
             throw ValidationError.ForField("staffId", "staffId is required.");
         }
 
+        // Resolve the programme in the URL before the staff member, so 404s name the right resource.
+        var programme = await _repository.GetAsync(programmeId, cancellationToken).ConfigureAwait(false)
+            ?? throw new NotFoundError("Programme", programmeId.ToString());
+
         var staff = await _staffDirectory.FindByIdAsync(request.StaffId, cancellationToken).ConfigureAwait(false)
             ?? throw new NotFoundError("Staff member", request.StaffId);
 
@@ -68,9 +72,6 @@ public sealed class ProgrammeService
         {
             throw ValidationError.ForField("staffId", $"Staff member '{staff.StaffId}' is inactive.");
         }
-
-        var programme = await _repository.GetAsync(programmeId, cancellationToken).ConfigureAwait(false)
-            ?? throw new NotFoundError("Programme", programmeId.ToString());
 
         if (programme.Members.Any(m => string.Equals(m.StaffId, staff.StaffId, StringComparison.OrdinalIgnoreCase)))
         {

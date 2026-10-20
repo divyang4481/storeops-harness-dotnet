@@ -17,6 +17,7 @@ public static class StatusCodeErrorResponses
         {
             StatusCodes.Status404NotFound => (ErrorCodes.NotFound, "The requested route does not exist."),
             StatusCodes.Status405MethodNotAllowed => (ErrorCodes.MethodNotAllowed, "The HTTP method is not allowed for this route."),
+            StatusCodes.Status415UnsupportedMediaType => (ErrorCodes.UnsupportedMediaType, "Content-Type must be application/json."),
             _ => ($"HTTP_{response.StatusCode}", "The request could not be completed."),
         };
 

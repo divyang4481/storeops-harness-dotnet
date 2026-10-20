@@ -36,4 +36,5 @@ The task is done only when the script prints `ALL CHECKS PASSED`.
 
 - One type per file, file-scoped namespaces, `_camelCase` private fields, PascalCase constants.
 - Package versions only in `Directory.Packages.props` (central package management).
-- Git: this environment may not allow pushing. Do not `git push`; commit locally only when the user asks.
+- Git: on the corporate (Cognizant) machine pushing is not allowed. Do not `git push` there; commit locally only when the user asks.
+- The repo's gate command is `/quality-gate` (runs the verify script). Claude's built-in verify skill only exercises the running app; it is not the full gate.

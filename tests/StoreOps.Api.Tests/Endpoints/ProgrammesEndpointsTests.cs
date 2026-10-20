@@ -97,6 +97,19 @@ public sealed class ProgrammesEndpointsTests : IClassFixture<StoreOpsApiFactory>
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task AddMember_UnknownProgrammeAndUnknownStaff_ReportsTheProgramme()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.PostJsonAsync(
+            $"/api/programmes/{Guid.NewGuid()}/members",
+            new AddProgrammeMemberRequest("S-9999", null));
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.StartsWith("Programme ", (await response.ReadAsync<ErrorResponse>()).Error.Message, StringComparison.Ordinal);
+    }
+
     internal static async Task<Programme> CreateAsync(HttpClient client, string name)
     {
         using var response = await client.PostJsonAsync("/api/programmes", new CreateProgrammeRequest(name, null, null, null));

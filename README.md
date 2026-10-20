@@ -54,7 +54,7 @@ StoreOps.sln
 | GET | `/api/activities` | `?storeId=&status=` filters |
 | POST | `/api/activities` | 201 + `Location` |
 | GET | `/api/activities/{id}` | 404 `NOT_FOUND` |
-| PATCH | `/api/activities/{id}` | null fields are left unchanged; 409 when leaving a terminal status |
+| PATCH | `/api/activities/{id}` | null fields are left unchanged; 409 once the activity is Completed or Cancelled (closed records are read-only) |
 | DELETE | `/api/activities/{id}` | 204 |
 | GET | `/api/programmes` | |
 | POST | `/api/programmes` | |
@@ -87,7 +87,7 @@ Activities, Programmes ──read-only──▶ IStaffDirectory (Staff)
 
 `AppError` (abstract, with `Code`, `Message` and `StatusCode`) has these subtypes:
 `ValidationError` (400 `VALIDATION_FAILED`, with per-field details), `BadRequestError` (400 `BAD_REQUEST`),
-`NotFoundError` (404), `ConflictError` (409) and `InternalError` (500, which hides internal details).
+`NotFoundError` (404), `ConflictError` (409), `UnsupportedMediaTypeError` (415 `UNSUPPORTED_MEDIA_TYPE`) and `InternalError` (500, which hides internal details).
 
 Every failure uses the same response shape:
 
@@ -95,7 +95,7 @@ Every failure uses the same response shape:
 { "error": { "code": "VALIDATION_FAILED", "message": "...", "details": { "title": ["title is required."] } } }
 ```
 
-The same shape covers framework-level failures: malformed JSON, bad enum or guid values, unknown routes (404) and wrong verbs (405).
+The same shape covers framework-level failures: malformed JSON, bad enum values (names and undefined numbers such as `7`), a non-JSON Content-Type (415), unknown routes (404) and wrong verbs (405). Messages never expose internal .NET type names; the raw framework detail is only logged.
 
 ## Quality gates
 
@@ -109,4 +109,4 @@ Seeded staff for local testing: `S-1001` and `S-1002` (store ST-001), `S-2001` (
 
 ## Using Claude Code on this repo
 
-`CLAUDE.md` gives Claude the verify workflow and the architecture rules. In Claude Code, run `/verify`, or ask: *"Run scripts/verify.ps1 and fix any failures until ALL CHECKS PASSED."*
+`CLAUDE.md` gives Claude the verify workflow and the architecture rules. In Claude Code, run `/quality-gate` (named so it doesn't clash with Claude's built-in verify skill), or ask: *"Run scripts/verify.ps1 and fix any failures until ALL CHECKS PASSED."*

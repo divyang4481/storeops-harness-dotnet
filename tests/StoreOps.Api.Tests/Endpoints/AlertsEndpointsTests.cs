@@ -28,6 +28,16 @@ public sealed class AlertsEndpointsTests : IClassFixture<StoreOpsApiFactory>
     }
 
     [Fact]
+    public async Task List_UndefinedNumericSeverity_Returns400()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/api/alerts?severity=9", UriKind.Relative));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CancellingActivity_RaisesWarningAlertViaEventBus()
     {
         using var client = _factory.CreateClient();

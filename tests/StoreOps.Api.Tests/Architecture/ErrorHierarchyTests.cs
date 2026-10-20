@@ -39,6 +39,7 @@ public sealed partial class ErrorHierarchyTests
             new ConflictError("conflict"),
             new BadRequestError("bad"),
             ValidationError.ForField("title", "title is required."),
+            new UnsupportedMediaTypeError(),
             new InternalError(),
         };
 

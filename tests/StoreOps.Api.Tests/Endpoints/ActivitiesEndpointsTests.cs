@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using StoreOps.Api.Common.Errors;
 using StoreOps.Api.Contracts.Activities;
 using StoreOps.Api.Modules.Activities;
@@ -88,6 +89,49 @@ public sealed class ActivitiesEndpointsTests : IClassFixture<StoreOpsApiFactory>
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Assert.Equal(ErrorCodes.Conflict, (await response.ReadAsync<ErrorResponse>()).Error.Code);
+    }
+
+    [Fact]
+    public async Task Patch_AnyFieldOnTerminalActivity_Returns409Conflict()
+    {
+        using var client = _factory.CreateClient();
+        var created = await CreateAsync(client, TestJson.UniqueStoreId());
+        (await client.PatchJsonAsync($"/api/activities/{created.Id}", Patch(ActivityStatus.Cancelled))).Dispose();
+
+        using var response = await client.PatchJsonAsync(
+            $"/api/activities/{created.Id}",
+            new UpdateActivityRequest("Renamed after cancel", null, null, null, null));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("{\"status\":7}")]
+    [InlineData("{\"status\":-1}")]
+    [InlineData("{\"status\":\"7\"}")]
+    public async Task Patch_UndefinedStatusValue_Returns400AndIsNotSaved(string body)
+    {
+        using var client = _factory.CreateClient();
+        var created = await CreateAsync(client, TestJson.UniqueStoreId());
+        var url = new Uri($"/api/activities/{created.Id}", UriKind.Relative);
+        using var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+        using var response = await client.PatchAsync(url, content);
+        using var after = await client.GetAsync(url);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(ActivityStatus.Planned, (await after.ReadAsync<Activity>()).Status);
+    }
+
+    [Fact]
+    public async Task List_UndefinedNumericStatusQuery_Returns400()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/api/activities?status=7", UriKind.Relative));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(ErrorCodes.ValidationFailed, (await response.ReadAsync<ErrorResponse>()).Error.Code);
     }
 
     [Fact]

@@ -24,7 +24,9 @@ public sealed class ErrorHandlingTests : IClassFixture<StoreOpsApiFactory>
         using var response = await client.PostAsync(new Uri("/api/activities", UriKind.Relative), content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(ErrorCodes.BadRequest, (await response.ReadAsync<ErrorResponse>()).Error.Code);
+        var error = await response.ReadAsync<ErrorResponse>();
+        Assert.Equal(ErrorCodes.BadRequest, error.Error.Code);
+        Assert.DoesNotContain("CreateActivityRequest", error.Error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -47,7 +49,21 @@ public sealed class ErrorHandlingTests : IClassFixture<StoreOpsApiFactory>
         using var response = await client.GetAsync(new Uri("/api/alerts?severity=Apocalyptic", UriKind.Relative));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(ErrorCodes.BadRequest, (await response.ReadAsync<ErrorResponse>()).Error.Code);
+        var error = await response.ReadAsync<ErrorResponse>();
+        Assert.Equal(ErrorCodes.BadRequest, error.Error.Code);
+        Assert.Equal("Invalid value for parameter 'severity'.", error.Error.Message);
+    }
+
+    [Fact]
+    public async Task NonJsonContentType_Returns415WithNamedCode()
+    {
+        using var client = _factory.CreateClient();
+        using var content = new StringContent("hello", Encoding.UTF8, "text/plain");
+
+        using var response = await client.PostAsync(new Uri("/api/activities", UriKind.Relative), content);
+
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+        Assert.Equal(ErrorCodes.UnsupportedMediaType, (await response.ReadAsync<ErrorResponse>()).Error.Code);
     }
 
     [Fact]
