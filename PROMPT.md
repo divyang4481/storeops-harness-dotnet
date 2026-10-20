@@ -18,3 +18,11 @@ Artefacts: `.harness/reviews/02-sla-breach-alerting/`
 ```
 @planner Add SLA breach alerting — when a HIGH or CRITICAL task passes its due date without reaching DONE, automatically fire a SLA_BREACH notification to the assigned Department Lead and escalate to STORE_MANAGER if unresolved after a configurable grace period
 ```
+
+### 02-sla-breach-alerting — change request 1
+Invoked 2026-10-20 in the claude.ai/code cloud session after the Monitor flagged a spec→contract gap
+(`.harness/reviews/02-sla-breach-alerting/sprint-2-run-log.md`). First run using skill refinement 1.
+
+```
+@planner change 02-sla-breach-alerting: escalation timing must use the due date stored on the breach record, so moving or clearing the activity's due date after a breach neither postpones nor cancels the escalation — as the approved spec assumption already states
+```
