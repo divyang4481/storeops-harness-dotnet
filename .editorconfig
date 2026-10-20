@@ -1,0 +1,69 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+[*.{json,yml,yaml,props,targets,csproj,sln}]
+indent_size = 2
+
+[*.cs]
+# ---------- Code style (enforced in build via EnforceCodeStyleInBuild) ----------
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:warning
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:silent
+dotnet_style_qualification_for_property = false:silent
+dotnet_style_qualification_for_method = false:silent
+csharp_style_var_for_built_in_types = true:silent
+csharp_style_var_when_type_is_apparent = true:silent
+
+dotnet_diagnostic.IDE0005.severity = warning   # unnecessary using
+dotnet_diagnostic.IDE0161.severity = warning   # file-scoped namespaces
+dotnet_diagnostic.IDE0011.severity = warning   # braces
+
+# Constants and static readonly fields: PascalCase (matches StyleCop SA1303/SA1311)
+dotnet_naming_rule.constants_pascal.symbols = constant_fields
+dotnet_naming_rule.constants_pascal.style = pascal_case
+dotnet_naming_rule.constants_pascal.severity = warning
+dotnet_naming_symbols.constant_fields.applicable_kinds = field
+dotnet_naming_symbols.constant_fields.applicable_accessibilities = *
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+
+dotnet_naming_rule.static_readonly_pascal.symbols = static_readonly_fields
+dotnet_naming_rule.static_readonly_pascal.style = pascal_case
+dotnet_naming_rule.static_readonly_pascal.severity = warning
+dotnet_naming_symbols.static_readonly_fields.applicable_kinds = field
+dotnet_naming_symbols.static_readonly_fields.applicable_accessibilities = *
+dotnet_naming_symbols.static_readonly_fields.required_modifiers = static, readonly
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+# Private instance fields: _camelCase
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# ---------- StyleCop adjustments ----------
+dotnet_diagnostic.SA1101.severity = none   # 'this.' prefix: we use _camelCase fields instead
+dotnet_diagnostic.SA1309.severity = none   # allow leading underscore on private fields
+dotnet_diagnostic.SA1633.severity = none   # no file header requirement
+dotnet_diagnostic.SA1600.severity = none   # XML docs not mandatory on every element (stub project)
+dotnet_diagnostic.SA1601.severity = none
+dotnet_diagnostic.SA1602.severity = none
+dotnet_diagnostic.SA1413.severity = none   # trailing commas optional
+
+# ---------- .NET analyzer adjustments (each one deliberate) ----------
+# AppError is the mandated base type name (code/message/statusCode); the "Exception" suffix rule does not fit it.
+dotnet_diagnostic.CA1710.severity = none
+# Typed errors always require a code + message; the parameterless/inner-exception constructors would bypass that.
+dotnet_diagnostic.CA1032.severity = none
