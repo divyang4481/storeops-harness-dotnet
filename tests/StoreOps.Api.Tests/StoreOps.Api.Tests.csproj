@@ -9,6 +9,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
+    <PackageReference Include="coverlet.collector" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
   </ItemGroup>
 
@@ -18,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\StoreOps.Api\StoreOps.Api.csproj" />
+    <ProjectReference Include="..\..\tools\StoreOps.HarnessVerdict\StoreOps.HarnessVerdict.csproj" />
   </ItemGroup>
 
 </Project>

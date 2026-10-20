@@ -11,6 +11,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B6A4CE52
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoreOps.Api.Tests", "tests\StoreOps.Api.Tests\StoreOps.Api.Tests.csproj", "{ECA67F35-29C2-4E9D-87A2-F83E7E12DB65}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{DED9ABB7-6740-4B2D-BF69-942242C9F6B7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoreOps.CoverageGate", "tools\StoreOps.CoverageGate\StoreOps.CoverageGate.csproj", "{C3740779-D8DA-4C4C-8074-A789E524CE5A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoreOps.HarnessVerdict", "tools\StoreOps.HarnessVerdict\StoreOps.HarnessVerdict.csproj", "{A6AC9A7B-AB84-4843-ABC5-31E02017BE79}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +34,19 @@ Global
 		{ECA67F35-29C2-4E9D-87A2-F83E7E12DB65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ECA67F35-29C2-4E9D-87A2-F83E7E12DB65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ECA67F35-29C2-4E9D-87A2-F83E7E12DB65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3740779-D8DA-4C4C-8074-A789E524CE5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3740779-D8DA-4C4C-8074-A789E524CE5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3740779-D8DA-4C4C-8074-A789E524CE5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3740779-D8DA-4C4C-8074-A789E524CE5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6AC9A7B-AB84-4843-ABC5-31E02017BE79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6AC9A7B-AB84-4843-ABC5-31E02017BE79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6AC9A7B-AB84-4843-ABC5-31E02017BE79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6AC9A7B-AB84-4843-ABC5-31E02017BE79}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{036CB47F-A83F-4D8F-9FCD-6749160441C2} = {EA3005B3-D352-4A26-800C-A3829ACB3C5F}
 		{ECA67F35-29C2-4E9D-87A2-F83E7E12DB65} = {B6A4CE52-51B6-4423-AC32-E2E6C5A59D51}
+		{C3740779-D8DA-4C4C-8074-A789E524CE5A} = {DED9ABB7-6740-4B2D-BF69-942242C9F6B7}
+		{A6AC9A7B-AB84-4843-ABC5-31E02017BE79} = {DED9ABB7-6740-4B2D-BF69-942242C9F6B7}
 	EndGlobalSection
 EndGlobal

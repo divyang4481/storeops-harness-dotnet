@@ -8,3 +8,6 @@ obj/
 TestResults/
 *.trx
 coverage*/
+
+# Harness working files (spec, contracts, summaries during an active run). Archived copies live in .harness/reviews/.
+.harness/output/
