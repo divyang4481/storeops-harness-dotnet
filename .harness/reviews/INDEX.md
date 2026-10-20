@@ -5,3 +5,4 @@ Governance audit trail: one row per sprint, appended by the Monitor. Each RUN_ID
 
 | RUN_ID | Feature | Sprint | Verdict | Score | Iterations | Escalated | Est. tokens | Date |
 |---|---|---|---|---|---|---|---|---|
+| 01-shift-handover-bulk-update-s1-202610201659 | 01-shift-handover-bulk-update | 1 | PASS | 100 | 1 of 3 | no | 86,445 (measured ~271k excl. monitor) | 2026-10-20 |
