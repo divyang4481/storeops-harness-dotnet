@@ -7,9 +7,12 @@ namespace StoreOps.Api.Modules.Activities;
 /// <summary>
 /// SLA rules for activities. A High or Critical activity that is not Done and whose DueAt is strictly in the past
 /// breaches once: the breach marker is stored first, then <see cref="ActivitySlaBreachedEvent"/> is published.
-/// A breach that is still unresolved (not Done, still High or Critical) once <c>DueAt + EscalationGracePeriodMinutes</c>
-/// has been reached is escalated once: the marker is marked escalated first, then
-/// <see cref="ActivitySlaEscalatedEvent"/> is published. Breaches are processed before escalations in a sweep.
+/// A breach that is still unresolved (not Done, still High or Critical) once
+/// <c>ActivitySlaBreach.DueAt + EscalationGracePeriodMinutes</c> has been reached is escalated once: the grace period
+/// runs from the due date stored on the breach marker, so moving or clearing the activity's due date after the breach
+/// neither postpones, advances nor cancels the escalation. The marker is marked escalated first, then
+/// <see cref="ActivitySlaEscalatedEvent"/> (carrying the stored due date) is published. Breaches are processed before
+/// escalations in a sweep.
 /// </summary>
 public sealed class ActivitySlaMonitor
 {
@@ -109,8 +112,7 @@ public sealed class ActivitySlaMonitor
             var activity = await _activities.GetAsync(marker.ActivityId, cancellationToken).ConfigureAwait(false);
             if (activity is null
                 || !IsUnresolvedHighPriority(activity)
-                || activity.DueAt is not { } dueAt
-                || now < dueAt + gracePeriod)
+                || now < marker.DueAt + gracePeriod)
             {
                 continue;
             }
@@ -130,7 +132,7 @@ public sealed class ActivitySlaMonitor
                     activity.Status,
                     activity.Department,
                     activity.AssigneeStaffId,
-                    dueAt,
+                    marker.DueAt,
                     gracePeriod,
                     marker.BreachedAt,
                     now),

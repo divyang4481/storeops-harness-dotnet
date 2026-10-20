@@ -71,6 +71,21 @@ public sealed class SlaTestHost : IDisposable
         return Factory.Services.GetRequiredService<ActivitySlaMonitor>().RunSweepAsync(CancellationToken.None);
     }
 
+    /// <summary>
+    /// Overwrites the stored due date of an activity directly through <see cref="IActivityRepository"/>, as a test
+    /// arrangement for states the API cannot produce (for example a cleared due date; PATCH treats null as "unchanged").
+    /// </summary>
+    /// <param name="activityId">The activity to change.</param>
+    /// <param name="dueAt">The new stored due date, or <c>null</c> to clear it.</param>
+    /// <returns>A task that completes when the activity has been written.</returns>
+    public async Task OverwriteStoredDueDateAsync(Guid activityId, DateTimeOffset? dueAt)
+    {
+        var repository = Factory.Services.GetRequiredService<IActivityRepository>();
+        var activity = await repository.GetAsync(activityId, CancellationToken.None);
+        Assert.NotNull(activity);
+        await repository.UpdateAsync(activity with { DueAt = dueAt }, CancellationToken.None);
+    }
+
     public void Dispose()
     {
         Factory.Dispose();
