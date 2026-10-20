@@ -166,6 +166,7 @@ public sealed class ActivityService
     /// <summary>
     /// Shift handover: marks several activities of the caller's store Done or Blocked in one request. Request-level
     /// problems reject the whole request; business-rule failures are reported per item while the other items are applied.
+    /// When at least one item is updated, one <see cref="ShiftHandoverCompletedEvent"/> is published after all items are persisted.
     /// </summary>
     /// <param name="callerStaffId">The X-Staff-Id of the caller (the outgoing staff member).</param>
     /// <param name="request">The items to update, optional incoming store manager and note.</param>
@@ -193,13 +194,29 @@ public sealed class ActivityService
 
         var handoverId = Guid.NewGuid();
         var results = new List<BulkStatusItemResult>(items.Count);
+        var handedOver = new List<HandedOverActivity>(items.Count);
         foreach (var item in items)
         {
-            results.Add(await ApplyBulkItemAsync(caller, handoverId, item.Id, item.Status!.Value, cancellationToken).ConfigureAwait(false));
+            results.Add(await ApplyBulkItemAsync(caller, handoverId, item.Id, item.Status!.Value, handedOver, cancellationToken).ConfigureAwait(false));
         }
 
-        var updatedCount = results.Count(r => string.Equals(r.Outcome, OutcomeUpdated, StringComparison.Ordinal));
-        return new BulkStatusUpdateResponse(handoverId, updatedCount, results.Count - updatedCount, results);
+        var rejectedCount = results.Count - handedOver.Count;
+        if (handedOver.Count > 0)
+        {
+            await _eventBus.PublishAsync(
+                new ShiftHandoverCompletedEvent(
+                    handoverId,
+                    caller.StoreId,
+                    caller.StaffId,
+                    request.IncomingStaffId,
+                    handedOver,
+                    rejectedCount,
+                    request.Note,
+                    _clock.GetUtcNow()),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        return new BulkStatusUpdateResponse(handoverId, handedOver.Count, rejectedCount, results);
     }
 
     /// <summary>Deletes an activity. Only its creator, the store manager of its store or the regional manager may delete it.</summary>
@@ -339,6 +356,7 @@ public sealed class ActivityService
         Guid handoverId,
         Guid id,
         ActivityStatus targetStatus,
+        List<HandedOverActivity> handedOver,
         CancellationToken cancellationToken)
     {
         var existing = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
@@ -373,6 +391,7 @@ public sealed class ActivityService
             new ActivityStatusChangedEvent(updated.Id, updated.StoreId, updated.Title, existing.Status, targetStatus, caller.StaffId, now),
             cancellationToken).ConfigureAwait(false);
 
+        handedOver.Add(new HandedOverActivity(updated.Id, updated.Title, existing.Status, targetStatus));
         return new BulkStatusItemResult(id, OutcomeUpdated, existing.Status, targetStatus, audit.Id, null, null);
     }
 

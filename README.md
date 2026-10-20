@@ -32,7 +32,7 @@ StoreOps.sln
 │  │  ├─ Events/                 IEventBus, IEventSubscriber<T>, InMemoryEventBus
 │  │  └─ Http/                   request helpers, status-code error bodies
 │  ├─ Contracts/                 the ONLY cross-module surface
-│  │  ├─ Activities/             ActivityStatus + Activity* events
+│  │  ├─ Activities/             ActivityStatus + Activity* events, ShiftHandoverCompletedEvent + HandedOverActivity
 │  │  ├─ Programmes/             ProgrammeMemberAddedEvent
 │  │  └─ Staff/                  IStaffDirectory (read-only) + StaffMember
 │  └─ Modules/
@@ -78,9 +78,12 @@ How events flow:
 
 ```
 Activities ──ActivityCreated / StatusChanged / Deleted──▶ IEventBus ──▶ Alerts  (raise alerts)
+Activities ──ShiftHandoverCompleted─────────────────────▶            │
 Programmes ──ProgrammeMemberAdded───────────────────────▶            └▶ Reports (store/region metrics)
 Activities, Programmes ──read-only──▶ IStaffDirectory (Staff)
 ```
+
+A bulk status update that updates at least one activity publishes one `ShiftHandoverCompletedEvent`; Alerts raises a `ShiftHandover` alert (`Shift handover by <staff>: <n> done, <n> blocked, <n> rejected. Done: '<title>'. Blocked: '<title>'.` plus ` Note: <note>` when given) for `incomingStaffId`, or else for every active store manager of the store except the outgoing staff member.
 
 `InMemoryEventBus` runs in process and isolates subscriber failures. To move to a real broker (Azure Service Bus, GCP Pub/Sub, AWS SNS+SQS), replace that one class behind `IEventBus`.
 

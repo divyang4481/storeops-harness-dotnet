@@ -12,6 +12,7 @@ public static class AlertsModule
         services.AddSingleton<AlertService>();
 
         services.AddSingleton<IEventSubscriber<ActivityStatusChangedEvent>, ActivityAlertsSubscriber>();
+        services.AddSingleton<IEventSubscriber<ShiftHandoverCompletedEvent>, ShiftHandoverAlertsSubscriber>();
         return services;
     }
 }
