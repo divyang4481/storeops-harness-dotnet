@@ -47,7 +47,7 @@ StoreOps.sln
    └─ Architecture/              module-boundary and error-hierarchy rules
 ```
 
-## REST endpoints (9)
+## REST endpoints (10)
 
 | Method | Route | Notes |
 |---|---|---|
@@ -55,13 +55,14 @@ StoreOps.sln
 | POST | `/api/activities` | 201 + `Location` |
 | GET | `/api/activities/{id}` | 404 `NOT_FOUND` |
 | PATCH | `/api/activities/{id}` | null fields are left unchanged; 409 once the activity is Completed or Cancelled (closed records are read-only) |
+| PATCH | `/api/activities/bulk-status` | shift handover: mark up to 50 activities of the caller's store `Done` or `Blocked`; 400 for invalid requests (nothing applied), otherwise 200 with per-item results (`Updated` / `Rejected` with `NOT_FOUND`, `FORBIDDEN`, `ALREADY_DONE`, `UNCHANGED`); one audit entry and one `ActivityStatusChangedEvent` per updated activity |
 | DELETE | `/api/activities/{id}` | 204 |
 | GET | `/api/programmes` | |
 | POST | `/api/programmes` | |
 | POST | `/api/programmes/{id}/members` | staff are checked through `IStaffDirectory`; 409 on duplicate |
 | GET | `/api/alerts` | `?storeId=&severity=` filters |
 
-Staff and Reports have a route layer but no public endpoints in v1. `EndpointInventoryTests` fails if the public surface stops being exactly these nine.
+Staff and Reports have a route layer but no public endpoints in v1. `EndpointInventoryTests` fails if the public surface stops being exactly these ten.
 
 ## Module rules (enforced by tests)
 

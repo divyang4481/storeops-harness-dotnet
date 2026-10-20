@@ -16,6 +16,7 @@ public static class ActivityRoutes
         group.MapPost("/", CreateAsync).WithName("CreateActivity");
         group.MapGet("/{id:guid}", GetAsync).WithName("GetActivity");
         group.MapPatch("/{id:guid}", UpdateAsync).WithName("UpdateActivity");
+        group.MapPatch("/bulk-status", BulkUpdateStatusAsync).WithName("BulkUpdateActivityStatus");
         group.MapDelete("/{id:guid}", DeleteAsync).WithName("DeleteActivity");
 
         return app;
@@ -54,6 +55,13 @@ public static class ActivityRoutes
         ActivityService service,
         CancellationToken cancellationToken) =>
         TypedResults.Ok(await service.UpdateAsync(callerId, id, RequestValidation.RequireBody(request), cancellationToken).ConfigureAwait(false));
+
+    private static async Task<Ok<BulkStatusUpdateResponse>> BulkUpdateStatusAsync(
+        [FromHeader(Name = CallerHeaders.StaffId)] string? callerId,
+        BulkStatusUpdateRequest? request,
+        ActivityService service,
+        CancellationToken cancellationToken) =>
+        TypedResults.Ok(await service.BulkUpdateStatusAsync(callerId, RequestValidation.RequireBody(request), cancellationToken).ConfigureAwait(false));
 
     private static async Task<NoContent> DeleteAsync(
         [FromHeader(Name = CallerHeaders.StaffId)] string? callerId,

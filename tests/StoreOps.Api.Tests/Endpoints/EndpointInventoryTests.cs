@@ -4,7 +4,7 @@ using StoreOps.Api.Tests.Infrastructure;
 
 namespace StoreOps.Api.Tests.Endpoints;
 
-/// <summary>Guards the public contract: exactly the nine agreed REST endpoints are exposed under /api.</summary>
+/// <summary>Guards the public contract: exactly the ten agreed REST endpoints are exposed under /api.</summary>
 public sealed class EndpointInventoryTests : IClassFixture<StoreOpsApiFactory>
 {
     private static readonly string[] ExpectedEndpoints =
@@ -14,6 +14,7 @@ public sealed class EndpointInventoryTests : IClassFixture<StoreOpsApiFactory>
         "GET /api/activities/{id:guid}",
         "GET /api/alerts",
         "GET /api/programmes",
+        "PATCH /api/activities/bulk-status",
         "PATCH /api/activities/{id:guid}",
         "POST /api/activities",
         "POST /api/programmes",
@@ -27,8 +28,9 @@ public sealed class EndpointInventoryTests : IClassFixture<StoreOpsApiFactory>
         _factory = factory;
     }
 
+    // AC-1.9
     [Fact]
-    public void Api_ExposesExactlyTheNineAgreedEndpoints()
+    public void Api_ExposesExactlyTheTenAgreedEndpoints()
     {
         var dataSource = _factory.Services.GetRequiredService<EndpointDataSource>();
 
