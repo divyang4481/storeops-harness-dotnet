@@ -1,0 +1,5 @@
+[*.cs]
+# Test method names use Method_Scenario_Expected underscores.
+dotnet_diagnostic.CA1707.severity = none
+# xUnit test code does not need ConfigureAwait.
+dotnet_diagnostic.CA2007.severity = none
