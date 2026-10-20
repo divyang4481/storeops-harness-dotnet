@@ -26,3 +26,14 @@ Invoked 2026-10-20 in the claude.ai/code cloud session after the Monitor flagged
 ```
 @planner change 02-sla-breach-alerting: escalation timing must use the due date stored on the breach record, so moving or clearing the activity's due date after a breach neither postpones nor cancels the escalation — as the approved spec assumption already states
 ```
+
+## Pending (Cognizant workstation)
+Run each in a **new** Claude Code session on the workstation after `git pull`; type `APPROVED` after reviewing the spec.
+
+```
+@planner Add regional rollup report — GET /api/reports/region/{id} aggregating task completion rates, overdue counts by TaskCategory, and blocked task lists across all stores in the region; triggers a REGIONAL_ROLLUP Report record via the event bus
+```
+```
+@planner Add planogram task template — POST /api/programmes/{id}/templates to clone a standard set of PLANOGRAM tasks into a new store programme, applying department assignments and default priorities from the template definition
+```
+(The orchestrator moves each prompt into its own `## 0N-<slug>` section when the run starts.)
