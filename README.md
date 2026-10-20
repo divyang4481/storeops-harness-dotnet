@@ -2,6 +2,19 @@
 
 StoreOps is a REST API for running retail store operations. It is built with ASP.NET Core minimal APIs on .NET 8 (C# 12). Every module stores its data in memory, so no database is needed. The business logic is deliberately stubbed: the code has the full structure, compiles, lints and passes its tests.
 
+## Capstone harness at a glance
+
+This repository is both the StoreOps API and the **Claude Code development harness** that governs every change to it.
+
+| Start here | What it is |
+|---|---|
+| `CLAUDE.md` | Orchestrator: `@planner <feature>` → spec → `APPROVED` → Generator ⇄ Evaluator (max 3 iterations) → Monitor |
+| `.harness/agents/`, `.harness/skills/` | 4 agent definitions, 9 StoreOps-specific skill files |
+| `scripts/harness-check.ps1`, `tools/` | 8 automated hard gates, per-layer coverage gate, deterministic verdict tool |
+| `.harness/reviews/` | Audit trail: spec, contracts, generator summaries, evaluator feedback, run-logs per sprint; `INDEX.md`, `SKILL-CHANGELOG.md` |
+| `DESIGN_BRIEF.md`, `REFLECTION.md`, `DEPLOYMENT.md`, `JOURNAL.md`, `PROMPT.md` | Capstone deliverables |
+| `SUBMISSION.md` | Rubric → evidence map and Moodle submission steps |
+
 ## Quick start
 
 One command runs every step (restore, lint, build, test and a live smoke test):
