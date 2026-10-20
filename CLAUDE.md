@@ -16,6 +16,7 @@ StoreOps itself (.NET 8 minimal API, 5 modules) is described in `.harness/skills
 | `APPROVED` | approves the spec and starts the autonomous sprint loop (§3 step 3) |
 | any other text while `STATUS: AWAITING_APPROVAL` | sends it to the Planner as a spec change request |
 | `continue harness` (or `/harness-status`) | reads `.harness/output/progress.md` and resumes / reports |
+| `@planner change <slug>: <request>` | change request on a finished feature: Planner adds `## Change request` to that feature's spec and the next sprint contract; same approval gate (§3 step 2), same sprint loop |
 
 The developer's only active steps are the feature prompt and `APPROVED` (plus decisions at escalation points).
 
@@ -72,7 +73,8 @@ describe changes."* **Stop and wait.** Never self-approve.
 | `VERDICT: INVALID` | second time | escalate |
 
 5. **Archive** to `.harness/reviews/<slug>/`: `sprint-N-contract.md`, `sprint-N-generator-summary.md`,
-   `sprint-N-evaluator-feedback.md` (final), `sprint-N-checks.md`.
+   `sprint-N-evaluator-feedback.md` (final), `sprint-N-checks.md`, and `progress-sprint-N.md` (snapshot of
+   progress.md including the measured token usage each subagent reported, recorded in HISTORY).
 6. **Commit locally**: `git add -A && git commit -m "harness(<slug>): sprint N <VERDICT> score <s> (iter K)"`.
    Never `git push` (pushing is blocked on the Cognizant workstation; the developer publishes).
 7. Invoke `monitor` (slug, N). Then continue with sprint N + 1.

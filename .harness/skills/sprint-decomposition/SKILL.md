@@ -32,9 +32,27 @@ SPRINT: N   FEATURE: <slug>   SPEC: .harness/output/spec.md
 ## Acceptance criteria
 AC-N.1  GIVEN <seeded state / caller>  WHEN <HTTP call or event>  THEN <observable outcome>
         Verify: <test name or check that proves it>
+## Spec traceability
+| Spec rule / assumption (spec.md line) | Covered by AC | or: Deferred / Not tested + reason |
+## Carry-over (advisory)        <- optional: advisories from earlier evaluator feedback this sprint may address
 ## Architecture constraints for this sprint (rule ids)
 ## Definition of done: harness-check HARD_GATES: PASS + every AC has a passing outcome test
 ```
+
+## Traceability rules (added after run 02 — see .harness/reviews/SKILL-CHANGELOG.md)
+- Every business rule and every behaviour-changing assumption in spec.md appears in exactly one contract's
+  "Spec traceability" table, mapped to an AC or explicitly deferred with a reason. An assumption with no AC is how
+  run 02 shipped escalation timing that contradicted the approved spec while every check passed.
+- When a rule depends on a value that can change (due date, priority, status), name the source field exactly:
+  "the due date stored on the breach record" vs "the activity's current DueAt".
+- If DI registration depends on configuration, list `src/StoreOps.Api/Program.cs` under "Files expected to change".
+- Expected error codes must match real binding behaviour: an undefined enum sent as a JSON number fails JSON
+  binding first and returns 400 `BAD_REQUEST`, not `VALIDATION_FAILED`.
+
+## Change requests on a finished feature
+Invoked as `@planner change <slug>: <request>`. Do not create a new feature: append a `## Change request <n>`
+section to the archived spec (what changes, why, which earlier assumption it settles), set the first line back to
+`STATUS: AWAITING APPROVAL`, and write the next sprint contract number (e.g. `sprint-3-contract.md`).
 
 ## Writing testable GIVEN/WHEN/THEN
 - GIVEN names concrete seeded data: caller `X-Staff-Id` (from app-context table), store, existing activity state.

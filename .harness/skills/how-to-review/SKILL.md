@@ -18,6 +18,13 @@ results. Pair with `evaluation-criteria` (what to check) — this file is how to
 8. If not PASS, write "Required fixes" — one numbered item per failed check, each with file:line, the rule id,
    and the concrete change (what to write, not "improve").
 
+## Scope notes
+- The sprint's code is **uncommitted on top of BASE_REF** by design; review the working tree diff, not a commit.
+- HG-8 counts files under `src/`, `tests/` and `tools/` only. Docs (`README.md`) and `.harness/reviews/` files the
+  orchestrator committed after BASE_REF may appear in the Generator's list; they are not a mismatch.
+- B6: read the contract's "Spec traceability" table and the spec assumptions it cites. Behaviour that contradicts
+  an approved assumption is a B6 FAIL even if every AC passes (fail-closed on spec conflicts).
+
 ## Evidence rules (how variable output becomes binary)
 - PASS needs positive evidence: a file:line, a test name, or a gate id. "Looks fine" is not evidence.
 - FAIL needs a file:line (or a missing file path) and the rule violated.

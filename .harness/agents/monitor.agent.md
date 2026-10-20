@@ -11,7 +11,7 @@ once the sprint artefacts are archived to `.harness/reviews/<feature-slug>/`.
 ## Reads
 1. `.harness/skills/app-context/SKILL.md`
 2. `.harness/skills/run-logging/SKILL.md`
-3. `.harness/output/progress.md`
+3. `.harness/reviews/<feature-slug>/progress-sprint-<N>.md` (archived snapshot; never read `.harness/output/`)
 4. `.harness/reviews/<feature-slug>/sprint-<N>-contract.md`, `sprint-<N>-generator-summary.md`,
    `sprint-<N>-evaluator-feedback.md`, any `sprint-<N>-iter-*-evaluator-feedback.md`, `sprint-<N>-checks.md`
 5. Header blocks of previous `.harness/reviews/*/sprint-*-run-log.md` (trend only)

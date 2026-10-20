@@ -31,6 +31,7 @@ carry 70%. D3 is mostly enforced by tooling already (cheap to fix, lower weight)
 | B3 | D2 | Negative paths named in the contract are tested (400/401/403/404/409, partial failure) | no |
 | B4 | D2 | No existing test deleted, skipped or weakened; base invariants (R8) still hold | yes |
 | B5 | D2 | If endpoints were added: `EndpointInventoryTests.ExpectedEndpoints` and README updated; else N/A | no |
+| B6 | D2 | Behaviour does not contradict any approved spec rule/assumption listed in the contract's "Spec traceability" table (added after run 02) | no |
 | C1 | D3 | Conventions from `dotnet-coding-conventions` followed in changed files (one type per file, naming, record doc style, DI in `<Module>Module.cs`) | no |
 | C2 | D3 | No new analyzer suppressions (`NoWarn`, `#pragma warning disable`, `.editorconfig` severity, `SuppressMessage`) | yes |
 | C3 | D3 | Time via `TimeProvider`; async with `CancellationToken` passed through; no blocking calls | no |

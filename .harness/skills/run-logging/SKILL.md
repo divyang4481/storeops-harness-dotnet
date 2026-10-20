@@ -4,7 +4,8 @@
 observable over time: iterations, verdicts, cost, and which skill files are drifting.
 
 ## Inputs (read only these)
-`.harness/output/progress.md`, the sprint contract, `generator-summary.md`, every
+The archived progress snapshot `.harness/reviews/<slug>/progress-sprint-<N>.md` (the orchestrator archives it
+before invoking you, because `.harness/output/` may already belong to the next sprint), the sprint contract, `generator-summary.md`, every
 `evaluator-feedback*.md` of this sprint, `checks.md`, and previous run-logs in `.harness/reviews/*/sprint-*-run-log.md`
 (for trends — read only their header blocks).
 
@@ -20,7 +21,7 @@ ENVIRONMENT: <claude.ai/code cloud | Cognizant workstation>   MODEL: <as reporte
 | Iter | HG-1..HG-8 (P/F) | Failed check ids | Verdict | Score |
 
 ## Estimated token cost
-| Invocation | Agent | Chars read | Chars written | Est. tokens |
+| Invocation | Agent | Chars read | Chars written | Est. tokens | Measured tokens (from orchestrator) |
 TOTAL_EST_TOKENS: <n>
 Method: tokens ≈ (chars read + chars written) / 4 + 4,000 fixed overhead per agent invocation (system prompt,
 tool schemas, CLAUDE.md). Chars = byte size of every file the agent was instructed to read/write (use

@@ -36,10 +36,18 @@ Seeded staff (`Modules/Staff/InMemoryStaffRepository.cs`):
 | S-3002 | Associate | ST-003 | SOUTH | Produce |
 | S-9001 | RegionalManager | ST-003 | SOUTH | – |
 
-## Base API surface (9 endpoints — guarded by `EndpointInventoryTests`)
-GET/POST `/api/activities`, GET/PATCH/DELETE `/api/activities/{id}`, GET/POST `/api/programmes`,
-POST `/api/programmes/{id}/members`, GET `/api/alerts`. New endpoints are added only when a sprint contract says so,
-and the same change must update `EndpointInventoryTests.ExpectedEndpoints` and `README.md`.
+## API surface (10 endpoints — guarded by `EndpointInventoryTests`)
+Base 9: GET/POST `/api/activities`, GET/PATCH/DELETE `/api/activities/{id}`, GET/POST `/api/programmes`,
+POST `/api/programmes/{id}/members`, GET `/api/alerts`. Added by harness runs: PATCH `/api/activities/bulk-status`
+(01-shift-handover-bulk-update). New endpoints are added only when a sprint contract says so, and the same change
+must update `EndpointInventoryTests.ExpectedEndpoints` and `README.md`.
+
+## Background processing and configuration
+`ActivitySlaSweepService` (Activities, `BackgroundService`) runs `ActivitySlaMonitor` on an interval from the `Sla`
+section of `appsettings.json` (`BackgroundSweepEnabled`, `SweepIntervalSeconds`, `EscalationGracePeriodMinutes`),
+validated at start-up. Tests disable the hosted sweep and call the monitor with a controlled `TimeProvider`.
+Events added so far: `ShiftHandoverCompletedEvent`, `ActivitySlaBreachedEvent`, `ActivitySlaEscalatedEvent`
+(all in `Contracts/Activities/`).
 
 ## Commands (Windows first; bash equivalents in scripts/*.sh)
 | Purpose | Command |

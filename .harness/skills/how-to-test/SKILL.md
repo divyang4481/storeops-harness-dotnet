@@ -44,6 +44,13 @@ Rules:
   avoid `[InlineData(null)]` for non-nullable parameters (CS8625) — write a separate `[Fact]`.
 - Test names: `Method_Scenario_ExpectedOutcome` (CA1707 is disabled for tests).
 
+## Background services and concurrency
+- Hosted loops (`BackgroundService`): give the service a fake `TimeProvider` and a short interval, start it via the
+  host, advance time, and assert the observable effect (alert raised) — so `ExecuteAsync` is covered, not only the
+  method it calls.
+- Atomic claims: test the losing branch directly (call the repository claim twice with the same key and assert the
+  second returns `false` and nothing is published), instead of trying to race threads.
+
 ## Coverage (HG-5)
 Service files `Modules/*/*Service.cs` + `Subscribers/` ≥ 80%, `*Routes.cs` ≥ 70%, `Common/` + `Contracts/` ≥ 60%,
 overall ≥ 70%. New service branches (each validation/authorisation/conflict path) need a test.
