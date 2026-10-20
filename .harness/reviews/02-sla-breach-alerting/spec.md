@@ -132,3 +132,50 @@ curl -s "http://localhost:5080/api/alerts?type=Escalation" -H "X-Staff-Id: S-100
    activity will alert again. That is acceptable for this stub.
 9. The test-only helpers `ManualTimeProvider` (a subclass of `TimeProvider`) and `RecordingSubscriber<T>` go in
    `tests/StoreOps.Api.Tests/Infrastructure/`. No new NuGet package is added (avoids corporate-feed restore risk).
+
+## Change request 1
+REQUEST (developer, verbatim): "escalation timing must use the due date stored on the breach record, so moving or
+clearing the activity's due date after a breach neither postpones nor cancels the escalation — as the approved spec
+assumption already states"
+
+### What changes
+- The **Escalation** rule above is made precise. Its `DueAt` means **the due date stored on the breach record**
+  (`ActivitySlaBreach.DueAt`, captured at breach time), **not the activity's current `DueAt`**:
+  escalate when the marker has `EscalatedAt == null`, the activity still exists, `Status != Done`,
+  `Priority ∈ {High, Critical}`, AND `now >= ActivitySlaBreach.DueAt + EscalationGracePeriodMinutes`.
+  The activity's current `DueAt` is not read by the escalation step at all; it may be later, earlier or `null`.
+- `ActivitySlaEscalatedEvent.DueAt` carries `ActivitySlaBreach.DueAt` (the breached due date), so the alert describes
+  the SLA that was actually missed. `Title`, `Priority`, `Status`, `Department`, `AssigneeStaffId` still come from the
+  current activity (unchanged). No contract type changes shape.
+- The only production file that changes is `ActivitySlaMonitor.cs` (the escalation step and its doc comment).
+
+### Why
+Sprint 2 shipped `RaiseEscalationsAsync` reading `activity.DueAt` (the current value). As a result, moving the due
+date later after a breach postpones the escalation, and an activity whose due date is no longer set is never escalated.
+This contradicts assumptions 4 and 6, which the developer approved, and nothing in sprint 2's contract mapped
+assumption 6 to an AC (see the run-02 traceability rule in `sprint-decomposition`).
+
+### Which earlier assumptions it settles
+- **Assumption 4** (grace period runs from `DueAt`): settled as "from the due date stored on the breach record".
+- **Assumption 6** (no re-arming; moving the due date does not cancel a pending escalation): confirmed and extended to
+  *clearing* the due date and to moving it *earlier*. Neither postpones, advances, nor cancels the escalation. Only
+  `Status = Done`, a priority drop below High, or deletion (assumption 5) still prevent it. No second breach alert and
+  no second escalation are raised for the new due date. Re-arming stays out of scope.
+- **Assumption 5**: unchanged. It is re-checked in sprint 3 only in combination with a moved due date.
+
+### Assumptions added by this change request
+10. **Clearing the due date cannot be done through the API today.** `PATCH /api/activities/{id}` treats
+    `"dueAt": null` as "leave unchanged" (`UpdateActivityRequest`). This change request adds **no** clear-due-date
+    API semantics. The "cleared" case is protected anyway (e.g. future API changes or other writers), and its test
+    arranges the state by writing the stored activity with `DueAt = null` through `IActivityRepository` inside the
+    test host. That is a test-only arrangement and does not touch production module boundaries.
+11. `PATCH` does not validate `dueAt` against the clock, so moving a due date earlier (into the past) after a breach is
+    possible through the API. It is used for the negative AC.
+12. No endpoint, event, enum, configuration or Alerts change. Endpoint count stays at 10.
+
+### Sprint
+| Id | Goal | Modules | ACs |
+|---|---|---|---|
+| 3 | Escalation timing uses `ActivitySlaBreach.DueAt`; moved/cleared due dates neither postpone, advance nor cancel it | Activities (Alerts observed only) | 5 (AC-3.1 … AC-3.5) |
+
+Contract: `.harness/output/sprint-3-contract.md`.
