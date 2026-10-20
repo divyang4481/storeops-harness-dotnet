@@ -2,7 +2,7 @@ namespace StoreOps.Api.Modules.Programmes;
 
 public interface IProgrammeRepository
 {
-    Task<IReadOnlyList<Programme>> ListAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<Programme>> ListAsync(string? storeId, CancellationToken cancellationToken);
 
     Task<Programme?> GetAsync(Guid id, CancellationToken cancellationToken);
 

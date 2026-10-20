@@ -54,7 +54,7 @@ public sealed partial class AppErrorExceptionHandler : IExceptionHandler
     /// </summary>
     /// <param name="exception">The binding failure raised by minimal APIs.</param>
     /// <returns>A client-safe typed error.</returns>
-    internal static AppError FromBindingFailure(BadHttpRequestException exception)
+    public static AppError FromBindingFailure(BadHttpRequestException exception)
     {
         if (exception.StatusCode == StatusCodes.Status415UnsupportedMediaType)
         {

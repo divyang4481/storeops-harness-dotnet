@@ -1,9 +1,10 @@
 namespace StoreOps.Api.Contracts.Activities;
 
+// TaskStatus in the capstone specification: TODO | IN_PROGRESS | DONE | BLOCKED. Done is terminal.
 public enum ActivityStatus
 {
-    Planned,
+    Todo,
     InProgress,
-    Completed,
-    Cancelled,
+    Done,
+    Blocked,
 }

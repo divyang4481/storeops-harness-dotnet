@@ -4,7 +4,7 @@ using StoreOps.Api.Contracts.Programmes;
 
 namespace StoreOps.Api.Modules.Reports.Subscribers;
 
-/// <summary>Projects integration events into store metrics. Reports never queries other modules directly.</summary>
+/// <summary>Projects integration events into store metrics. Reports never queries or writes other modules' repositories.</summary>
 public sealed class MetricsSubscriber :
     IEventSubscriber<ActivityCreatedEvent>,
     IEventSubscriber<ActivityStatusChangedEvent>,
@@ -21,7 +21,7 @@ public sealed class MetricsSubscriber :
     public Task HandleAsync(ActivityCreatedEvent integrationEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
-        return _reports.RecordAsync(integrationEvent.StoreId, m => Apply(m, null, ActivityStatus.Planned), cancellationToken);
+        return _reports.RecordAsync(integrationEvent.StoreId, m => Apply(m, null, ActivityStatus.Todo), cancellationToken);
     }
 
     public Task HandleAsync(ActivityStatusChangedEvent integrationEvent, CancellationToken cancellationToken)
@@ -66,8 +66,8 @@ public sealed class MetricsSubscriber :
 
     private static StoreMetrics Adjust(StoreMetrics metrics, ActivityStatus status, int delta) => status switch
     {
-        ActivityStatus.Completed => metrics with { CompletedActivities = metrics.CompletedActivities + delta },
-        ActivityStatus.Cancelled => metrics with { CancelledActivities = metrics.CancelledActivities + delta },
+        ActivityStatus.Done => metrics with { DoneActivities = metrics.DoneActivities + delta },
+        ActivityStatus.Blocked => metrics with { BlockedActivities = metrics.BlockedActivities + delta },
         _ => metrics with { OpenActivities = metrics.OpenActivities + delta },
     };
 }

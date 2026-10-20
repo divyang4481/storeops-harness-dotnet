@@ -40,6 +40,8 @@ public sealed partial class ErrorHierarchyTests
             new BadRequestError("bad"),
             ValidationError.ForField("title", "title is required."),
             new UnsupportedMediaTypeError(),
+            new UnauthorizedError("who are you"),
+            new ForbiddenError("not yours"),
             new InternalError(),
         };
 

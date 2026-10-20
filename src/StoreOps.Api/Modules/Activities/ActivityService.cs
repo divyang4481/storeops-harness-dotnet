@@ -26,61 +26,89 @@ public sealed class ActivityService
         _clock = clock;
     }
 
-    public Task<IReadOnlyList<Activity>> ListAsync(string? storeId, ActivityStatus? status, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Activity>> ListAsync(string? callerStaffId, ActivityFilter filter, CancellationToken cancellationToken)
     {
-        EnsureDefined(status);
-        return _repository.ListAsync(storeId, status, cancellationToken);
+        ArgumentNullException.ThrowIfNull(filter);
+
+        await _staffDirectory.RequireCallerAsync(callerStaffId, cancellationToken).ConfigureAwait(false);
+        EnsureDefined(filter.Status, "status");
+        return await _repository.ListAsync(filter, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Activity> GetAsync(Guid id, CancellationToken cancellationToken) =>
-        await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false)
-        ?? throw new NotFoundError("Activity", id.ToString());
+    public async Task<Activity> GetAsync(string? callerStaffId, Guid id, CancellationToken cancellationToken)
+    {
+        await _staffDirectory.RequireCallerAsync(callerStaffId, cancellationToken).ConfigureAwait(false);
+        return await FindOrThrowAsync(id, cancellationToken).ConfigureAwait(false);
+    }
 
-    public async Task<Activity> CreateAsync(CreateActivityRequest request, CancellationToken cancellationToken)
+    public async Task<Activity> CreateAsync(string? callerStaffId, CreateActivityRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        if (string.IsNullOrWhiteSpace(request.StoreId))
-        {
-            errors["storeId"] = new[] { "storeId is required." };
-        }
+        var caller = await _staffDirectory.RequireCallerAsync(callerStaffId, cancellationToken).ConfigureAwait(false);
+        EnsureDefined(request.Priority, "priority");
+        EnsureDefined(request.Category, "category");
 
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
         ValidateTitle(request.Title, required: true, errors);
         if (errors.Count > 0)
         {
             throw new ValidationError("Activity request is invalid.", errors);
         }
 
-        await EnsureAssigneeExistsAsync(request.AssigneeStaffId, cancellationToken).ConfigureAwait(false);
+        var storeId = string.IsNullOrWhiteSpace(request.StoreId) ? caller.StoreId : request.StoreId.Trim();
+        if (!string.Equals(storeId, caller.StoreId, StringComparison.OrdinalIgnoreCase) && caller.Role != StaffRole.RegionalManager)
+        {
+            throw new ForbiddenError($"Staff member '{caller.StaffId}' cannot create activities for store '{storeId}'.");
+        }
+
+        await EnsureAssigneeAsync(request.AssigneeStaffId, storeId, cancellationToken).ConfigureAwait(false);
 
         var now = _clock.GetUtcNow();
         var activity = new Activity(
             Guid.NewGuid(),
-            request.StoreId!.Trim(),
+            storeId,
+            request.ProgrammeId,
             request.Title!.Trim(),
             request.Description,
-            ActivityStatus.Planned,
-            request.DueAt,
+            ActivityStatus.Todo,
+            request.Priority ?? ActivityPriority.Medium,
+            request.Category ?? ActivityCategory.General,
+            request.Department,
             request.AssigneeStaffId,
+            caller.StaffId,
+            request.DueAt,
             now,
             now);
 
         await _repository.AddAsync(activity, cancellationToken).ConfigureAwait(false);
         await _eventBus.PublishAsync(
-            new ActivityCreatedEvent(activity.Id, activity.StoreId, activity.Title, activity.DueAt, now),
+            new ActivityCreatedEvent(
+                activity.Id,
+                activity.StoreId,
+                activity.ProgrammeId,
+                activity.Title,
+                activity.Priority,
+                activity.Category,
+                activity.Department,
+                activity.AssigneeStaffId,
+                activity.DueAt,
+                now),
             cancellationToken).ConfigureAwait(false);
 
         return activity;
     }
 
-    public async Task<Activity> UpdateAsync(Guid id, UpdateActivityRequest request, CancellationToken cancellationToken)
+    public async Task<Activity> UpdateAsync(string? callerStaffId, Guid id, UpdateActivityRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var existing = await GetAsync(id, cancellationToken).ConfigureAwait(false);
+        var caller = await _staffDirectory.RequireCallerAsync(callerStaffId, cancellationToken).ConfigureAwait(false);
+        var existing = await FindOrThrowAsync(id, cancellationToken).ConfigureAwait(false);
 
-        EnsureDefined(request.Status);
+        EnsureDefined(request.Status, "status");
+        EnsureDefined(request.Priority, "priority");
+        EnsureDefined(request.Category, "category");
         var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
         ValidateTitle(request.Title, required: false, errors);
         if (errors.Count > 0)
@@ -88,13 +116,13 @@ public sealed class ActivityService
             throw new ValidationError("Activity update is invalid.", errors);
         }
 
-        // Completed and cancelled activities are closed records: no field may change any more.
-        if (IsTerminal(existing.Status))
+        // Done activities are closed records: no field may change any more.
+        if (existing.Status == ActivityStatus.Done)
         {
-            throw new ConflictError($"Activity is already {existing.Status} and can no longer be modified.");
+            throw new ConflictError("Activity is already Done and can no longer be modified.");
         }
 
-        await EnsureAssigneeExistsAsync(request.AssigneeStaffId, cancellationToken).ConfigureAwait(false);
+        await EnsureAssigneeAsync(request.AssigneeStaffId, existing.StoreId, cancellationToken).ConfigureAwait(false);
 
         var now = _clock.GetUtcNow();
         var updated = existing with
@@ -102,8 +130,11 @@ public sealed class ActivityService
             Title = request.Title?.Trim() ?? existing.Title,
             Description = request.Description ?? existing.Description,
             Status = request.Status ?? existing.Status,
-            DueAt = request.DueAt ?? existing.DueAt,
+            Priority = request.Priority ?? existing.Priority,
+            Category = request.Category ?? existing.Category,
+            Department = request.Department ?? existing.Department,
             AssigneeStaffId = request.AssigneeStaffId ?? existing.AssigneeStaffId,
+            DueAt = request.DueAt ?? existing.DueAt,
             UpdatedAt = now,
         };
 
@@ -112,36 +143,47 @@ public sealed class ActivityService
         if (updated.Status != existing.Status)
         {
             await _eventBus.PublishAsync(
-                new ActivityStatusChangedEvent(updated.Id, updated.StoreId, existing.Status, updated.Status, now),
+                new ActivityStatusChangedEvent(updated.Id, updated.StoreId, updated.Title, existing.Status, updated.Status, caller.StaffId, now),
                 cancellationToken).ConfigureAwait(false);
         }
 
         return updated;
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    /// <summary>Deletes an activity. Only its creator, the store manager of its store or the regional manager may delete it.</summary>
+    /// <param name="callerStaffId">The X-Staff-Id of the caller.</param>
+    /// <param name="id">The activity id.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the activity is deleted.</returns>
+    public async Task DeleteAsync(string? callerStaffId, Guid id, CancellationToken cancellationToken)
     {
-        var existing = await GetAsync(id, cancellationToken).ConfigureAwait(false);
+        var caller = await _staffDirectory.RequireCallerAsync(callerStaffId, cancellationToken).ConfigureAwait(false);
+        var existing = await FindOrThrowAsync(id, cancellationToken).ConfigureAwait(false);
+
+        var isOwner = string.Equals(existing.CreatedByStaffId, caller.StaffId, StringComparison.OrdinalIgnoreCase);
+        if (!isOwner && !caller.ManagesStore(existing.StoreId, await RegionOfAsync(existing.StoreId, cancellationToken).ConfigureAwait(false)))
+        {
+            throw new ForbiddenError("Only the activity owner or a store/regional manager can delete this activity.");
+        }
+
         if (!await _repository.DeleteAsync(id, cancellationToken).ConfigureAwait(false))
         {
             throw new NotFoundError("Activity", id.ToString());
         }
 
         await _eventBus.PublishAsync(
-            new ActivityDeletedEvent(existing.Id, existing.StoreId, existing.Status, _clock.GetUtcNow()),
+            new ActivityDeletedEvent(existing.Id, existing.StoreId, existing.Status, caller.StaffId, _clock.GetUtcNow()),
             cancellationToken).ConfigureAwait(false);
     }
 
-    private static void EnsureDefined(ActivityStatus? status)
+    private static void EnsureDefined<TEnum>(TEnum? value, string field)
+        where TEnum : struct, Enum
     {
-        if (status is { } value && !Enum.IsDefined(value))
+        if (value is { } v && !Enum.IsDefined(v))
         {
-            throw ValidationError.ForField("status", $"'{(int)value}' is not a valid activity status.");
+            throw ValidationError.ForField(field, $"'{v}' is not a valid {field}.");
         }
     }
-
-    private static bool IsTerminal(ActivityStatus status) =>
-        status is ActivityStatus.Completed or ActivityStatus.Cancelled;
 
     private static void ValidateTitle(string? title, bool required, Dictionary<string, string[]> errors)
     {
@@ -165,7 +207,17 @@ public sealed class ActivityService
         }
     }
 
-    private async Task EnsureAssigneeExistsAsync(string? staffId, CancellationToken cancellationToken)
+    private async Task<Activity> FindOrThrowAsync(Guid id, CancellationToken cancellationToken) =>
+        await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false)
+        ?? throw new NotFoundError("Activity", id.ToString());
+
+    private async Task<string> RegionOfAsync(string storeId, CancellationToken cancellationToken)
+    {
+        var staff = await _staffDirectory.ListByStoreAsync(storeId, cancellationToken).ConfigureAwait(false);
+        return staff.Count > 0 ? staff[0].RegionId : string.Empty;
+    }
+
+    private async Task EnsureAssigneeAsync(string? staffId, string storeId, CancellationToken cancellationToken)
     {
         if (staffId is null)
         {
@@ -176,6 +228,11 @@ public sealed class ActivityService
         if (staff is null || !staff.IsActive)
         {
             throw ValidationError.ForField("assigneeStaffId", $"Staff member '{staffId}' does not exist or is inactive.");
+        }
+
+        if (!string.Equals(staff.StoreId, storeId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw ValidationError.ForField("assigneeStaffId", $"Staff member '{staffId}' does not work at store '{storeId}'.");
         }
     }
 }

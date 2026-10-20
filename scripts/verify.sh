@@ -21,13 +21,16 @@ if [[ "${SKIP_SMOKE:-0}" != "1" ]]; then
   PID=$!
   trap 'kill $PID 2>/dev/null || true' EXIT
   B="http://127.0.0.1:$PORT/api"
-  for _ in $(seq 1 40); do curl -sf "$B/alerts" >/dev/null && break; sleep 0.5; done
-  ID=$(curl -sf -X POST "$B/activities" -H 'content-type: application/json' \
-        -d '{"storeId":"ST-001","title":"Smoke stock count","assigneeStaffId":"S-1001"}' | sed -E 's/.*"id":"([^"]+)".*/\1/')
-  curl -sf -X PATCH "$B/activities/$ID" -H 'content-type: application/json' -d '{"status":"Cancelled"}' >/dev/null
-  curl -sf "$B/alerts?storeId=ST-001" | grep -q ACTIVITY_CANCELLED || { echo "FAILED: no alert via event bus"; exit 1; }
-  CODE=$(curl -s -o /dev/null -w '%{http_code}' "$B/activities/00000000-0000-0000-0000-000000000001")
+  for _ in $(seq 1 40); do curl -sf -H 'X-Staff-Id: S-1001' "$B/alerts" >/dev/null && break; sleep 0.5; done
+  # ST-001 department lead creates and blocks a task; the store manager must receive an ESCALATION alert via the event bus.
+  ID=$(curl -sf -X POST "$B/activities" -H 'X-Staff-Id: S-1002' -H 'content-type: application/json' \
+        -d '{"title":"Smoke stock count","category":"Restocking","assigneeStaffId":"S-1003"}' | sed -E 's/.*"id":"([^"]+)".*/\1/')
+  curl -sf -X PATCH "$B/activities/$ID" -H 'X-Staff-Id: S-1002' -H 'content-type: application/json' -d '{"status":"Blocked"}' >/dev/null
+  curl -sf -H 'X-Staff-Id: S-1001' "$B/alerts?type=Escalation" | grep -q "$ID" || { echo "FAILED: no escalation alert via event bus"; exit 1; }
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' -H 'X-Staff-Id: S-1001' "$B/activities/00000000-0000-0000-0000-000000000001")
   [[ "$CODE" == "404" ]] || { echo "FAILED: expected 404, got $CODE"; exit 1; }
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' "$B/activities")
+  [[ "$CODE" == "401" ]] || { echo "FAILED: expected 401 without X-Staff-Id, got $CODE"; exit 1; }
   echo "Smoke test passed"
 fi
 

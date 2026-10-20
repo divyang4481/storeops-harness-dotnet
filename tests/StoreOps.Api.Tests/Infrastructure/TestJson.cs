@@ -27,7 +27,7 @@ public static class TestJson
         return client.PatchAsJsonAsync(url, body, Options);
     }
 
-    public static string UniqueStoreId() => $"ST-T-{Guid.NewGuid():N}";
+    public static string UniqueTitle(string prefix) => $"{prefix} {Guid.NewGuid():N}";
 
     private static JsonSerializerOptions CreateOptions()
     {

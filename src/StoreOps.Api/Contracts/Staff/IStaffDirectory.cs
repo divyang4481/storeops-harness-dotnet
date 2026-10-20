@@ -9,4 +9,6 @@ public interface IStaffDirectory
     Task<StaffMember?> FindByIdAsync(string staffId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<StaffMember>> ListByStoreAsync(string storeId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<StaffMember>> ListByRegionAsync(string regionId, CancellationToken cancellationToken);
 }

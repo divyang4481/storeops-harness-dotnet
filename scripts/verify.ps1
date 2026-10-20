@@ -38,23 +38,26 @@ if (-not $SkipSmoke) {
         $base = "http://127.0.0.1:$Port/api"
         $ready = $false
         for ($i = 0; $i -lt 40 -and -not $ready; $i++) {
-            try { Invoke-RestMethod "$base/alerts" | Out-Null; $ready = $true } catch { Start-Sleep -Milliseconds 500 }
+            try { Invoke-WebRequest "$base/alerts" -UseBasicParsing -Headers @{ 'X-Staff-Id' = 'S-1001' } | Out-Null; $ready = $true } catch { Start-Sleep -Milliseconds 500 }
         }
         if (-not $ready) { throw "API did not start on port $Port" }
 
-        $activity = Invoke-RestMethod "$base/activities" -Method Post -ContentType 'application/json' `
-            -Body '{"storeId":"ST-001","title":"Smoke stock count","assigneeStaffId":"S-1001"}'
-        Invoke-RestMethod "$base/activities/$($activity.id)" -Method Patch -ContentType 'application/json' -Body '{"status":"Cancelled"}' | Out-Null
-        $programme = Invoke-RestMethod "$base/programmes" -Method Post -ContentType 'application/json' -Body '{"name":"Smoke programme"}'
-        Invoke-RestMethod "$base/programmes/$($programme.id)/members" -Method Post -ContentType 'application/json' -Body '{"staffId":"S-2001"}' | Out-Null
-        $alerts = @(Invoke-RestMethod "$base/alerts?storeId=ST-001")
-        if ($alerts.Count -lt 1) { throw "Expected an ACTIVITY_CANCELLED alert raised via the event bus" }
+        # Caller identity: ST-001 department lead creates and blocks a task; the store manager must receive an ESCALATION alert.
+        $lead = @{ 'X-Staff-Id' = 'S-1002' }
+        $manager = @{ 'X-Staff-Id' = 'S-1001' }
+        $activity = Invoke-RestMethod "$base/activities" -Method Post -Headers $lead -ContentType 'application/json' `
+            -Body '{"title":"Smoke stock count","category":"Restocking","assigneeStaffId":"S-1003"}'
+        Invoke-RestMethod "$base/activities/$($activity.id)" -Method Patch -Headers $lead -ContentType 'application/json' -Body '{"status":"Blocked"}' | Out-Null
+        $programme = Invoke-RestMethod "$base/programmes" -Method Post -Headers $manager -ContentType 'application/json' -Body '{"name":"Smoke programme"}'
+        Invoke-RestMethod "$base/programmes/$($programme.id)/members" -Method Post -Headers $manager -ContentType 'application/json' -Body '{"staffId":"S-1003"}' | Out-Null
+        $alerts = @(Invoke-RestMethod "$base/alerts?type=Escalation" -Headers $manager)
+        if (-not ($alerts | Where-Object { $_.sourceReference -eq $activity.id })) { throw "Expected an ESCALATION alert for S-1001 raised via the event bus" }
 
         # Works on Windows PowerShell 5.1 (WebException) and PowerShell 7 (HttpResponseException).
         $status = 0
-        try { Invoke-RestMethod "$base/activities/$([guid]::NewGuid())" | Out-Null } catch { $status = [int]$_.Exception.Response.StatusCode }
+        try { Invoke-RestMethod "$base/activities/$([guid]::NewGuid())" -Headers $manager | Out-Null } catch { $status = [int]$_.Exception.Response.StatusCode }
         if ($status -ne 404) { throw "Expected 404 for unknown activity, got $status" }
-        Write-Host "Smoke test passed ($($alerts.Count) alert(s) for ST-001)" -ForegroundColor Green
+        Write-Host "Smoke test passed (escalation alert delivered to S-1001)" -ForegroundColor Green
     }
     finally {
         if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }

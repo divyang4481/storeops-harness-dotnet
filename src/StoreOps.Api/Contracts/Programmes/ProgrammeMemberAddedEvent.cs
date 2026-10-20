@@ -7,4 +7,5 @@ public sealed record ProgrammeMemberAddedEvent(
     string ProgrammeName,
     string StaffId,
     string StoreId,
+    string Role,
     DateTimeOffset OccurredAt) : IIntegrationEvent;

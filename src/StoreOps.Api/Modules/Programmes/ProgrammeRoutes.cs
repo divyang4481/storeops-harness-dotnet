@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using StoreOps.Api.Common.Http;
 
 namespace StoreOps.Api.Modules.Programmes;
@@ -16,25 +17,30 @@ public static class ProgrammeRoutes
         return app;
     }
 
-    private static async Task<Ok<IReadOnlyList<Programme>>> ListAsync(ProgrammeService service, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await service.ListAsync(cancellationToken).ConfigureAwait(false));
+    private static async Task<Ok<IReadOnlyList<Programme>>> ListAsync(
+        [FromHeader(Name = CallerHeaders.StaffId)] string? callerId,
+        ProgrammeService service,
+        CancellationToken cancellationToken) =>
+        TypedResults.Ok(await service.ListAsync(callerId, cancellationToken).ConfigureAwait(false));
 
     private static async Task<Created<Programme>> CreateAsync(
+        [FromHeader(Name = CallerHeaders.StaffId)] string? callerId,
         CreateProgrammeRequest? request,
         ProgrammeService service,
         CancellationToken cancellationToken)
     {
-        var programme = await service.CreateAsync(RequestValidation.RequireBody(request), cancellationToken).ConfigureAwait(false);
+        var programme = await service.CreateAsync(callerId, RequestValidation.RequireBody(request), cancellationToken).ConfigureAwait(false);
         return TypedResults.Created($"/api/programmes/{programme.Id}", programme);
     }
 
     private static async Task<Created<ProgrammeMember>> AddMemberAsync(
+        [FromHeader(Name = CallerHeaders.StaffId)] string? callerId,
         Guid id,
         AddProgrammeMemberRequest? request,
         ProgrammeService service,
         CancellationToken cancellationToken)
     {
-        var member = await service.AddMemberAsync(id, RequestValidation.RequireBody(request), cancellationToken).ConfigureAwait(false);
+        var member = await service.AddMemberAsync(callerId, id, RequestValidation.RequireBody(request), cancellationToken).ConfigureAwait(false);
         return TypedResults.Created($"/api/programmes/{id}/members/{member.StaffId}", member);
     }
 }

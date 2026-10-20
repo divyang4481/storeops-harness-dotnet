@@ -18,7 +18,7 @@ public sealed class ErrorHandlingTests : IClassFixture<StoreOpsApiFactory>
     [Fact]
     public async Task MalformedJson_Returns400BadRequestCode()
     {
-        using var client = _factory.CreateClient();
+        using var client = _factory.CreateClientAs(TestStaff.StoreManager001);
         using var content = new StringContent("{not json", Encoding.UTF8, "application/json");
 
         using var response = await client.PostAsync(new Uri("/api/activities", UriKind.Relative), content);
@@ -32,7 +32,7 @@ public sealed class ErrorHandlingTests : IClassFixture<StoreOpsApiFactory>
     [Fact]
     public async Task EmptyBody_Returns400BadRequestCode()
     {
-        using var client = _factory.CreateClient();
+        using var client = _factory.CreateClientAs(TestStaff.StoreManager001);
         using var content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
 
         using var response = await client.PostAsync(new Uri("/api/programmes", UriKind.Relative), content);
@@ -44,20 +44,20 @@ public sealed class ErrorHandlingTests : IClassFixture<StoreOpsApiFactory>
     [Fact]
     public async Task InvalidEnumInQuery_Returns400BadRequestCode()
     {
-        using var client = _factory.CreateClient();
+        using var client = _factory.CreateClientAs(TestStaff.StoreManager001);
 
-        using var response = await client.GetAsync(new Uri("/api/alerts?severity=Apocalyptic", UriKind.Relative));
+        using var response = await client.GetAsync(new Uri("/api/alerts?type=Apocalyptic", UriKind.Relative));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var error = await response.ReadAsync<ErrorResponse>();
         Assert.Equal(ErrorCodes.BadRequest, error.Error.Code);
-        Assert.Equal("Invalid value for parameter 'severity'.", error.Error.Message);
+        Assert.Equal("Invalid value for parameter 'type'.", error.Error.Message);
     }
 
     [Fact]
     public async Task NonJsonContentType_Returns415WithNamedCode()
     {
-        using var client = _factory.CreateClient();
+        using var client = _factory.CreateClientAs(TestStaff.StoreManager001);
         using var content = new StringContent("hello", Encoding.UTF8, "text/plain");
 
         using var response = await client.PostAsync(new Uri("/api/activities", UriKind.Relative), content);
@@ -67,9 +67,32 @@ public sealed class ErrorHandlingTests : IClassFixture<StoreOpsApiFactory>
     }
 
     [Fact]
-    public async Task UnknownRoute_Returns404WithTypedError()
+    public async Task MissingCallerHeader_Returns401()
     {
         using var client = _factory.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/api/activities", UriKind.Relative));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("S-9999")]
+    [InlineData(TestStaff.InactiveAssociate002)]
+    public async Task UnknownOrInactiveCaller_Returns401(string staffId)
+    {
+        using var client = _factory.CreateClientAs(staffId);
+
+        using var response = await client.GetAsync(new Uri("/api/activities", UriKind.Relative));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(ErrorCodes.Unauthorized, (await response.ReadAsync<ErrorResponse>()).Error.Code);
+    }
+
+    [Fact]
+    public async Task UnknownRoute_Returns404WithTypedError()
+    {
+        using var client = _factory.CreateClientAs(TestStaff.StoreManager001);
 
         using var response = await client.GetAsync(new Uri("/api/does-not-exist", UriKind.Relative));
 
@@ -80,7 +103,7 @@ public sealed class ErrorHandlingTests : IClassFixture<StoreOpsApiFactory>
     [Fact]
     public async Task WrongVerb_Returns405WithTypedError()
     {
-        using var client = _factory.CreateClient();
+        using var client = _factory.CreateClientAs(TestStaff.StoreManager001);
 
         using var response = await client.DeleteAsync(new Uri("/api/alerts", UriKind.Relative));
 

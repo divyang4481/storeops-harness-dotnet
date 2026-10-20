@@ -1,8 +1,8 @@
 namespace StoreOps.Api.Modules.Staff;
 
 /// <summary>
-/// Route layer placeholder. The v1 API surface exposes no staff endpoints; staff data is consumed
-/// in-process via <c>IStaffDirectory</c>. Endpoints such as GET /api/staff would be added here.
+/// Route layer placeholder. Per the specification staff is auth-only with no CRUD surface; staff data is consumed
+/// in-process via <c>IStaffDirectory</c> and the X-Staff-Id caller header.
 /// </summary>
 public static class StaffRoutes
 {

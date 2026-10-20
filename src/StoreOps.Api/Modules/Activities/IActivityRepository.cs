@@ -1,10 +1,8 @@
-using StoreOps.Api.Contracts.Activities;
-
 namespace StoreOps.Api.Modules.Activities;
 
 public interface IActivityRepository
 {
-    Task<IReadOnlyList<Activity>> ListAsync(string? storeId, ActivityStatus? status, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Activity>> ListAsync(ActivityFilter filter, CancellationToken cancellationToken);
 
     Task<Activity?> GetAsync(Guid id, CancellationToken cancellationToken);
 

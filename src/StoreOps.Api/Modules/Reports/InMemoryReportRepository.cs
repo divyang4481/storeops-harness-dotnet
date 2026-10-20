@@ -4,17 +4,8 @@ namespace StoreOps.Api.Modules.Reports;
 
 public sealed class InMemoryReportRepository : IReportRepository
 {
-    private const string UnassignedRegion = "UNASSIGNED";
-
-    // Stub store-to-region mapping; would come from a store master-data service.
-    private static readonly Dictionary<string, string> StoreRegions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["ST-001"] = "NORTH",
-        ["ST-002"] = "NORTH",
-        ["ST-003"] = "SOUTH",
-    };
-
     private readonly ConcurrentDictionary<string, StoreMetrics> _stores = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<Guid, Report> _reports = new();
 
     public Task<StoreMetrics?> GetStoreAsync(string storeId, CancellationToken cancellationToken) =>
         Task.FromResult(_stores.TryGetValue(storeId, out var metrics) ? metrics : null);
@@ -25,13 +16,20 @@ public sealed class InMemoryReportRepository : IReportRepository
         return Task.FromResult(result);
     }
 
-    public Task UpsertStoreAsync(string storeId, Func<StoreMetrics, StoreMetrics> update, CancellationToken cancellationToken)
+    public Task UpsertStoreAsync(string storeId, string regionId, Func<StoreMetrics, StoreMetrics> update, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(update);
-        _stores.AddOrUpdate(storeId, id => update(Empty(id)), (_, current) => update(current));
+        _stores.AddOrUpdate(storeId, id => update(new StoreMetrics(id, regionId, 0, 0, 0, 0)), (_, current) => update(current));
         return Task.CompletedTask;
     }
 
-    private static StoreMetrics Empty(string storeId) =>
-        new(storeId, StoreRegions.GetValueOrDefault(storeId, UnassignedRegion), 0, 0, 0, 0);
+    public Task AddReportAsync(Report report, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        _reports[report.Id] = report;
+        return Task.CompletedTask;
+    }
+
+    public Task<Report?> GetReportAsync(Guid id, CancellationToken cancellationToken) =>
+        Task.FromResult(_reports.TryGetValue(id, out var report) ? report : null);
 }

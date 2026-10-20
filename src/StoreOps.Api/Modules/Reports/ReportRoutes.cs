@@ -1,8 +1,8 @@
 namespace StoreOps.Api.Modules.Reports;
 
 /// <summary>
-/// Route layer placeholder. Report endpoints (for example GET /api/reports/stores/{id}) are outside
-/// the v1 surface; <see cref="ReportService"/> already exposes store and region metrics for them.
+/// Route layer placeholder. Per the specification, report endpoints are added later as a demonstration feature
+/// (for example GET /api/reports/region/{id}); <see cref="ReportService"/> already exposes store and region metrics.
 /// </summary>
 public static class ReportRoutes
 {

@@ -6,9 +6,12 @@ public sealed class InMemoryProgrammeRepository : IProgrammeRepository
 {
     private readonly ConcurrentDictionary<Guid, Programme> _items = new();
 
-    public Task<IReadOnlyList<Programme>> ListAsync(CancellationToken cancellationToken)
+    public Task<IReadOnlyList<Programme>> ListAsync(string? storeId, CancellationToken cancellationToken)
     {
-        IReadOnlyList<Programme> result = _items.Values.OrderBy(p => p.CreatedAt).ToList();
+        IReadOnlyList<Programme> result = _items.Values
+            .Where(p => storeId is null || string.Equals(p.StoreId, storeId, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(p => p.CreatedAt)
+            .ToList();
         return Task.FromResult(result);
     }
 

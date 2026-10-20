@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using StoreOps.Api.Common.Http;
 
 namespace StoreOps.Api.Modules.Alerts;
 
@@ -14,9 +16,10 @@ public static class AlertRoutes
     }
 
     private static async Task<Ok<IReadOnlyList<Alert>>> ListAsync(
-        string? storeId,
-        AlertSeverity? severity,
+        [FromHeader(Name = CallerHeaders.StaffId)] string? callerId,
+        AlertType? type,
+        AlertStatus? status,
         AlertService service,
         CancellationToken cancellationToken) =>
-        TypedResults.Ok(await service.ListAsync(storeId, severity, cancellationToken).ConfigureAwait(false));
+        TypedResults.Ok(await service.ListForCallerAsync(callerId, type, status, cancellationToken).ConfigureAwait(false));
 }

@@ -6,4 +6,5 @@ public sealed record ActivityDeletedEvent(
     Guid ActivityId,
     string StoreId,
     ActivityStatus LastStatus,
+    string DeletedByStaffId,
     DateTimeOffset OccurredAt) : IIntegrationEvent;

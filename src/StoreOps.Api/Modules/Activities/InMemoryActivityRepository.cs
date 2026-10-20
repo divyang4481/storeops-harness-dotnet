@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using StoreOps.Api.Contracts.Activities;
 
 namespace StoreOps.Api.Modules.Activities;
 
@@ -7,11 +6,14 @@ public sealed class InMemoryActivityRepository : IActivityRepository
 {
     private readonly ConcurrentDictionary<Guid, Activity> _items = new();
 
-    public Task<IReadOnlyList<Activity>> ListAsync(string? storeId, ActivityStatus? status, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<Activity>> ListAsync(ActivityFilter filter, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(filter);
+
         IReadOnlyList<Activity> result = _items.Values
-            .Where(a => storeId is null || string.Equals(a.StoreId, storeId, StringComparison.OrdinalIgnoreCase))
-            .Where(a => status is null || a.Status == status)
+            .Where(a => filter.StoreId is null || string.Equals(a.StoreId, filter.StoreId, StringComparison.OrdinalIgnoreCase))
+            .Where(a => filter.ProgrammeId is null || a.ProgrammeId == filter.ProgrammeId)
+            .Where(a => filter.Status is null || a.Status == filter.Status)
             .OrderBy(a => a.CreatedAt)
             .ToList();
         return Task.FromResult(result);

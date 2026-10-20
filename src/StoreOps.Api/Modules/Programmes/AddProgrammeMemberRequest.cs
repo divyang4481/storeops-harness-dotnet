@@ -1,3 +1,4 @@
 namespace StoreOps.Api.Modules.Programmes;
 
-public sealed record AddProgrammeMemberRequest(string? StaffId, string? Role);
+// POST /api/programmes/{id}/members body. Role defaults to Associate.
+public sealed record AddProgrammeMemberRequest(string? StaffId, ProgrammeRole? Role = null);

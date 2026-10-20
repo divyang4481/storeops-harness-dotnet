@@ -1,50 +1,45 @@
 using StoreOps.Api.Common.Events;
 using StoreOps.Api.Contracts.Activities;
+using StoreOps.Api.Contracts.Staff;
 
 namespace StoreOps.Api.Modules.Alerts.Subscribers;
 
-/// <summary>Turns activity events into alerts. Alerts depends on Activities' contracts, never the reverse.</summary>
-public sealed class ActivityAlertsSubscriber :
-    IEventSubscriber<ActivityCreatedEvent>,
-    IEventSubscriber<ActivityStatusChangedEvent>
+/// <summary>
+/// Turns activity events into alerts. Alerts depends on the Activities contracts, never the reverse.
+/// Rule: an activity moving to Blocked raises an ESCALATION alert for every active store manager of that store.
+/// </summary>
+public sealed class ActivityAlertsSubscriber : IEventSubscriber<ActivityStatusChangedEvent>
 {
     private const string Source = "activities";
 
     private readonly AlertService _alerts;
+    private readonly IStaffDirectory _staffDirectory;
 
-    public ActivityAlertsSubscriber(AlertService alerts)
+    public ActivityAlertsSubscriber(AlertService alerts, IStaffDirectory staffDirectory)
     {
         _alerts = alerts;
-    }
-
-    public async Task HandleAsync(ActivityCreatedEvent integrationEvent, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(integrationEvent);
-
-        if (integrationEvent.DueAt is { } dueAt && dueAt < integrationEvent.OccurredAt)
-        {
-            await _alerts.RaiseAsync(
-                integrationEvent.StoreId,
-                AlertSeverity.Warning,
-                AlertCodes.ActivityOverdueOnCreate,
-                $"Activity '{integrationEvent.Title}' was created with a due date in the past.",
-                Source,
-                integrationEvent.ActivityId.ToString(),
-                cancellationToken).ConfigureAwait(false);
-        }
+        _staffDirectory = staffDirectory;
     }
 
     public async Task HandleAsync(ActivityStatusChangedEvent integrationEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        if (integrationEvent.NewStatus == ActivityStatus.Cancelled)
+        if (integrationEvent.NewStatus != ActivityStatus.Blocked)
+        {
+            return;
+        }
+
+        var managers = (await _staffDirectory.ListByStoreAsync(integrationEvent.StoreId, cancellationToken).ConfigureAwait(false))
+            .Where(s => s.IsActive && s.Role == StaffRole.StoreManager);
+
+        foreach (var manager in managers)
         {
             await _alerts.RaiseAsync(
+                manager.StaffId,
                 integrationEvent.StoreId,
-                AlertSeverity.Warning,
-                AlertCodes.ActivityCancelled,
-                $"Activity {integrationEvent.ActivityId} was cancelled (was {integrationEvent.PreviousStatus}).",
+                AlertType.Escalation,
+                $"Activity '{integrationEvent.Title}' was blocked by {integrationEvent.ChangedByStaffId}.",
                 Source,
                 integrationEvent.ActivityId.ToString(),
                 cancellationToken).ConfigureAwait(false);

@@ -4,5 +4,5 @@ public interface IStaffRepository
 {
     Task<StaffRecord?> GetAsync(string staffId, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<StaffRecord>> ListByStoreAsync(string storeId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<StaffRecord>> ListAsync(Func<StaffRecord, bool> predicate, CancellationToken cancellationToken);
 }
