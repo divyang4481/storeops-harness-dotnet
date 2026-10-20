@@ -15,7 +15,9 @@ param(
     [string]$AppName = 'storeops',
     [string]$EnvName = 'storeops-dev',
     [string]$InstanceType = 't3.micro',
-    [switch]$BundleOnly
+    [switch]$BundleOnly,
+    [int]$SlaSweepSeconds = 10,
+    [int]$SlaGraceMinutes = 0
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -73,7 +75,9 @@ if ($live.Count -eq 0) {
         "Namespace=aws:autoscaling:launchconfiguration,OptionName=IamInstanceProfile,Value=$roleName",
         "Namespace=aws:elasticbeanstalk:healthreporting:system,OptionName=SystemType,Value=basic",
         "Namespace=aws:elasticbeanstalk:application:environment,OptionName=ASPNETCORE_ENVIRONMENT,Value=Production",
-        "Namespace=aws:elasticbeanstalk:application:environment,OptionName=PORT,Value=5000"
+        "Namespace=aws:elasticbeanstalk:application:environment,OptionName=PORT,Value=5000",
+        "Namespace=aws:elasticbeanstalk:application:environment,OptionName=Sla__SweepIntervalSeconds,Value=$SlaSweepSeconds",
+        "Namespace=aws:elasticbeanstalk:application:environment,OptionName=Sla__EscalationGracePeriodMinutes,Value=$SlaGraceMinutes"
     )
     Invoke-Aws elasticbeanstalk create-environment --application-name $AppName --environment-name $EnvName --solution-stack-name $stack --version-label $version --option-settings $options | Out-Null
     aws elasticbeanstalk wait environment-exists --application-name $AppName --environment-names $EnvName --region $Region
