@@ -2,7 +2,8 @@
 
 The capstone brief accepts "Azure (App Service / Container Apps)" as a cloud target. StoreOps is prepared for
 **Azure App Service on Linux with the built-in .NET 8 runtime and ZIP deploy** — no Docker image, no registry.
-**Status: scripted and bundle-tested, not deployed** — no Azure subscription was available for this evaluation.
+**Status: scripted, not deployed** — no Azure subscription was available for this evaluation. The ZIP bundle is built
+by `/finalize-submission-azure` (step 2).
 The deployed-and-demonstrated evidence is the local deployment (see `DEPLOYMENT.md` §1 and `docs/screenshots/`).
 
 ## Why App Service (and not Container Apps or AKS)
@@ -47,6 +48,7 @@ deployed from the portal (Web App → Deployment Center → ZIP / Kudu `/ZipDepl
   federated credentials (no stored publish profile).
 
 ## Evidence
-- Bundle built by `deploy-appservice.ps1 -BundleOnly` (verified to produce a runnable publish output).
+- `dotnet publish` output (the ZIP content) verified to contain `StoreOps.Api.dll` + `runtimeconfig.json`; the ZIP is
+  built by `deploy-appservice.ps1 -BundleOnly` during `/finalize-submission-azure`.
 - Running application + demonstration of every harness-added endpoint: local deployment, `docs/screenshots/`.
 - Live Azure URL: not available (no subscription) — run the script above to obtain one.
